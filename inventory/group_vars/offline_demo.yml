@@ -1,0 +1,34 @@
+---
+# Configuración para modo offline/presentación
+# Esta configuración evita dependencias de red externa
+
+# Configuración de red interna solamente
+router_admin_network_interface: ens3  # Usar la variable esperada por el rol
+router_admin_primary_dhcp4: false  # No DHCP, IP estática
+router_admin_primary_dhcp6: false
+router_admin_primary_optional: false
+router_admin_secondary_ip: 192.168.77.10
+router_admin_secondary_prefix: 24
+
+# Configurar gateway interno (el host bridge)
+router_admin_default_gateway: 192.168.77.1
+
+# DNS interno o sin DNS para evitar dependencias
+router_admin_secondary_dns:
+  - 192.168.77.1  # usar el host como DNS relay si es necesario
+
+# Mantener NAT pero sin ruta por defecto
+router_admin_nat_interface: ens4
+router_admin_nat_dhcp4: true
+router_admin_nat_dhcp6: false
+router_admin_nat_optional: true
+# Configurar métrica alta para que NAT no sea ruta por defecto
+router_admin_nat_metric: 200
+
+# Configuración Router Admin
+router_admin_hostname: routerlab.local
+router_admin_namespace: router-admin
+
+# Modo offline - desactivar actualizaciones automáticas
+offline_mode: true
+skip_package_updates: true

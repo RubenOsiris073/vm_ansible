@@ -7,8 +7,19 @@ network:
       dhcp4: {{ (router_admin_primary_dhcp4 | default(true)) | ternary('true', 'false') }}
       dhcp6: {{ (router_admin_primary_dhcp6 | default(false)) | ternary('true', 'false') }}
       optional: {{ (router_admin_primary_optional | default(true)) | ternary('true', 'false') }}
+{% if not (router_admin_primary_dhcp4 | default(true)) %}
       addresses:
         - {{ router_admin_secondary_ip }}/{{ router_admin_secondary_prefix }}
+{% if router_admin_default_gateway is defined %}
+      routes:
+        - to: 0.0.0.0/0
+          via: {{ router_admin_default_gateway }}
+          metric: 100
+{% endif %}
+{% else %}
+      addresses:
+        - {{ router_admin_secondary_ip }}/{{ router_admin_secondary_prefix }}
+{% endif %}
 {% if router_admin_secondary_dns is defined and router_admin_secondary_dns %}
       nameservers:
         addresses:
@@ -22,6 +33,10 @@ network:
   dhcp4: {{ (router_admin_nat_dhcp4 | default(true)) | ternary('true', 'false') }}
   dhcp6: {{ (router_admin_nat_dhcp6 | default(false)) | ternary('true', 'false') }}
   optional: {{ (router_admin_nat_optional | default(true)) | ternary('true', 'false') }}
+{% if router_admin_nat_metric is defined %}
+  dhcp4-overrides:
+    route-metric: {{ router_admin_nat_metric }}
+{% endif %}
 {% if router_admin_nat_addresses is defined and router_admin_nat_addresses %}
   addresses:
 {% for addr in router_admin_nat_addresses %}

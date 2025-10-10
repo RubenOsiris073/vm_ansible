@@ -1,0 +1,35 @@
+---
+- name: Configure Ubuntu cloud image for offline demo
+  hosts: offline_demo
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  pre_tasks:
+    - name: Verify SSH reachability
+      ping:
+  roles:
+    - role: common
+      when: not (skip_package_updates | default(false))
+    - role: docker
+      when: not (skip_package_updates | default(false))
+    - role: kubernetes_tools
+      tags:
+        - kubernetes
+        - kubernetes_tools
+    - role: networking
+      tags:
+        - networking
+    - role: router_admin_app
+      tags:
+        - router_admin
+        - router_admin_app
+  post_tasks:
+    - name: Display offline demo status
+      debug:
+        msg: |
+          ===== Offline Demo Configuration Applied =====
+          VM IP: {{ router_admin_secondary_ip }}/{{ router_admin_secondary_prefix }}
+          Gateway: {{ router_admin_default_gateway | default('DHCP') }}
+          Router Admin: https://{{ router_admin_hostname }}
+          Mode: Offline (sin dependencias externas)
+          ==============================================
