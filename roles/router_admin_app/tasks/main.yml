@@ -1,0 +1,58 @@
+---
+- name: Ensure router admin app directory exists
+  ansible.builtin.file:
+    path: /opt/router-admin
+    state: directory
+    mode: '0755'
+
+- name: Sync router admin app sources
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../apps/router-admin/"
+    dest: /opt/router-admin/
+    owner: root
+    group: root
+    mode: preserve
+
+- name: Build router admin Docker image
+  ansible.builtin.command:
+    cmd: docker build -t router-admin:local .
+    chdir: /opt/router-admin
+  register: build_result
+  changed_when: build_result.rc == 0 and 'Using cache' not in ((build_result.stdout | default('')) + (build_result.stderr | default('')))
+
+- name: Save router admin image as tarball
+  ansible.builtin.command:
+    cmd: docker save router-admin:local -o /opt/router-admin/router-admin.tar
+  register: save_result
+  changed_when: save_result.rc == 0
+
+- name: Import image into k3s containerd
+  ansible.builtin.command:
+    cmd: /usr/local/bin/k3s ctr images import /opt/router-admin/router-admin.tar
+  register: import_result
+  changed_when: import_result.rc == 0
+
+- name: Render Kubernetes manifests
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../k8s/router-admin-deployment.yaml.j2"
+    dest: /opt/router-admin/router-admin-deployment.yaml
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy Router Admin application
+  ansible.builtin.command:
+    cmd: kubectl apply -f /opt/router-admin/router-admin-deployment.yaml
+  register: apply_result
+  changed_when: apply_result.rc == 0 and 'unchanged' not in apply_result.stdout
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+- name: Wait for Router Admin deployment rollout
+  ansible.builtin.command:
+    cmd: kubectl rollout status deployment/router-admin --timeout=180s
+  register: rollout_result
+  changed_when: false
+  failed_when: rollout_result.rc != 0
+  environment:
+    KUBECONFIG: /etc/rancher/k3s/k3s.yaml

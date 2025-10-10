@@ -1,0 +1,78 @@
+---
+- name: Refresh apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base tooling packages
+  ansible.builtin.apt:
+    name: "{{ common_apt_packages }}"
+    state: present
+
+- name: Ensure OpenSSH service is enabled and running
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true
+
+- name: Ensure grub.d directory exists for custom settings
+  ansible.builtin.file:
+    path: /etc/default/grub.d
+    state: directory
+    mode: '0755'
+
+- name: Configure GRUB to enable serial console
+  ansible.builtin.copy:
+    dest: /etc/default/grub.d/10-serial-console.cfg
+    content: |
+      GRUB_CMDLINE_LINUX="$GRUB_CMDLINE_LINUX console=tty1 console=ttyS0"
+    owner: root
+    group: root
+    mode: '0644'
+  notify: Update grub configuration
+
+- name: Ensure serial console service is enabled
+  ansible.builtin.systemd:
+    name: serial-getty@ttyS0.service
+    enabled: true
+    state: started
+
+- name: Ensure directory for tty1 getty override exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/getty@tty1.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure auto-login for tty1
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/getty@tty1.service.d/override.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin ubuntu --noclear %I $TERM
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd daemon
+    - Restart tty1 getty
+
+- name: Ensure directory for serial getty override exists
+  ansible.builtin.file:
+    path: /etc/systemd/system/serial-getty@ttyS0.service.d
+    state: directory
+    mode: '0755'
+
+- name: Configure auto-login for ttyS0
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/serial-getty@ttyS0.service.d/override.conf
+    content: |
+      [Service]
+      ExecStart=
+      ExecStart=-/sbin/agetty --autologin ubuntu --keep-baud 115200,38400,9600 --noclear %I $TERM
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - Reload systemd daemon
+    - Restart serial getty

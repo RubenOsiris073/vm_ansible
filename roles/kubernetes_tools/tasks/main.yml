@@ -1,0 +1,57 @@
+- name: Download kubectl client binary
+  ansible.builtin.get_url:
+    url: "{{ kubectl_download_url }}"
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+    checksum: "{{ kubectl_download_sha256 | default(omit) }}"
+
+- name: Ensure k3s configuration directory exists
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Configure k3s server options
+  ansible.builtin.template:
+    src: k3s-config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Restart k3s
+
+- name: Check if k3s binary exists
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+
+- name: Download k3s install script
+  ansible.builtin.get_url:
+    url: https://get.k3s.io
+    dest: /tmp/get-k3s.sh
+    mode: '0755'
+  when: not k3s_binary.stat.exists
+
+- name: Install k3s
+  ansible.builtin.command: /tmp/get-k3s.sh
+  args:
+    creates: /usr/local/bin/k3s
+  environment:
+    INSTALL_K3S_EXEC: --write-kubeconfig-mode 644
+  when: not k3s_binary.stat.exists
+
+- name: Ensure k3s service is enabled and running
+  ansible.builtin.service:
+    name: k3s
+    state: started
+    enabled: true
+
+- name: Verify kubectl is available
+  ansible.builtin.command: /usr/local/bin/kubectl version --client
+  register: kubectl_check
+  changed_when: false
+
+- name: Verify k3s is available
+  ansible.builtin.command: /usr/local/bin/k3s --version
+  register: k3s_check
+  changed_when: false

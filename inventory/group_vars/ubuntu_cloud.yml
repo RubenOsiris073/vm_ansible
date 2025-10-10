@@ -1,0 +1,47 @@
+---
+common_apt_packages:
+  - vim
+  - nano
+  - git
+  - curl
+  - wget
+  - gnupg
+  - ca-certificates
+  - apt-transport-https
+  - lsb-release
+  - software-properties-common
+  - iputils-ping
+  - traceroute
+  - net-tools
+  - htop
+  - openssh-client
+  - openssh-server
+  - unzip
+
+# Docker configuration
+docker_gpg_key_url: https://download.docker.com/linux/ubuntu/gpg
+docker_gpg_key_dest: /etc/apt/keyrings/docker.gpg
+docker_apt_repo: "deb [arch=amd64 signed-by={{ docker_gpg_key_dest }}] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+docker_packages:
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+docker_users:
+  - ubuntu
+
+# Kubernetes tooling
+kubectl_version: v1.30.2
+kubectl_download_url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+kubectl_download_sha256: null  # Replace with the official SHA-256 if you need checksum validation
+# Router Admin external access
+router_admin_network_interface: ens3   # interfaz enlazada al tap `tap-ubuntu`
+router_admin_secondary_ip: 192.168.77.10
+router_admin_secondary_prefix: 24
+router_admin_secondary_dns:
+  - 1.1.1.1
+  - 8.8.8.8
+router_admin_hostname: routerlab.local
+router_admin_nat_interface: ens4
+router_admin_namespace: router-admin

@@ -1,0 +1,40 @@
+---
+- name: Ensure routerlab helper directory exists
+  ansible.builtin.file:
+    path: "{{ routerlab_script_path | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: Deploy routerlab network defaults
+  ansible.builtin.template:
+    src: routerlab-network.env.j2
+    dest: "{{ routerlab_network_config_path }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy routerlab network helper script
+  ansible.builtin.template:
+    src: setup-routerlab-network.sh.j2
+    dest: "{{ routerlab_script_path }}"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy routerlab network systemd unit
+  ansible.builtin.template:
+    src: routerlab-network.service.j2
+    dest: "/etc/systemd/system/{{ routerlab_service_name }}"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Reload systemd daemon
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start routerlab network service
+  ansible.builtin.systemd:
+    name: "{{ routerlab_service_name }}"
+    enabled: true
+    state: started

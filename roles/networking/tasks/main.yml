@@ -1,0 +1,23 @@
+---
+- name: Determine interface for router admin secondary address
+  ansible.builtin.set_fact:
+    router_admin_primary_interface: "{{ router_admin_network_interface | default(ansible_default_ipv4.interface) }}"
+
+- name: Remove legacy cloud-init netplan configuration
+  ansible.builtin.file:
+    path: /etc/netplan/50-cloud-init.yaml
+    state: absent
+
+- name: Remove legacy NAT netplan configuration
+  ansible.builtin.file:
+    path: /etc/netplan/65-ens4.yaml
+    state: absent
+
+- name: Deploy netplan configuration for router admin access
+  ansible.builtin.template:
+    src: 60-router-admin.yaml.j2
+    dest: /etc/netplan/60-router-admin.yaml
+    owner: root
+    group: root
+    mode: '0600'
+  notify: Apply netplan configuration

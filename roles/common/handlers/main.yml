@@ -1,0 +1,20 @@
+---
+- name: Update grub configuration
+  ansible.builtin.command: update-grub
+  become: true
+
+- name: Reload systemd daemon
+  ansible.builtin.command: systemctl daemon-reload
+  become: true
+
+- name: Restart tty1 getty
+  ansible.builtin.systemd:
+    name: getty@tty1.service
+    state: restarted
+  become: true
+
+- name: Restart serial getty
+  ansible.builtin.systemd:
+    name: serial-getty@ttyS0.service
+    state: restarted
+  become: true

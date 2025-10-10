@@ -1,0 +1,10 @@
+---
+router_admin_primary_dhcp4: true
+router_admin_primary_dhcp6: false
+router_admin_primary_optional: true
+router_admin_nat_interface: null
+router_admin_nat_dhcp4: true
+router_admin_nat_dhcp6: false
+router_admin_nat_optional: true
+router_admin_nat_addresses: []
+router_admin_nat_nameservers: []

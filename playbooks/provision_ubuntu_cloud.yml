@@ -1,0 +1,40 @@
+---
+- name: Configure Ubuntu cloud image for GNS3 lab use
+  hosts: ubuntu_cloud
+  become: true
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  pre_tasks:
+    - name: Verify SSH reachability
+      ping:
+  roles:
+    - role: common
+    - role: docker
+    - role: kubernetes_tools
+      tags:
+        - kubernetes
+        - kubernetes_tools
+    - role: networking
+      tags:
+        - networking
+    - role: router_admin_app
+      tags:
+        - router_admin
+        - router_admin_app
+  post_tasks:
+    - name: Capture Docker version
+      command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: docker_version.rc != 0
+    - name: Show Docker version
+      debug:
+        msg: "{{ docker_version.stdout }}"
+    - name: Capture kubectl client version
+      command: kubectl version --client --output=json
+      register: kubectl_version
+      changed_when: false
+      failed_when: kubectl_version.rc != 0
+    - name: Show kubectl version
+      debug:
+        msg: "{{ (kubectl_version.stdout | from_json).clientVersion.gitVersion }}"

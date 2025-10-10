@@ -1,0 +1,40 @@
+# This file is managed by Ansible (networking role)
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    {{ router_admin_primary_interface }}:
+      dhcp4: {{ (router_admin_primary_dhcp4 | default(true)) | ternary('true', 'false') }}
+      dhcp6: {{ (router_admin_primary_dhcp6 | default(false)) | ternary('true', 'false') }}
+      optional: {{ (router_admin_primary_optional | default(true)) | ternary('true', 'false') }}
+      addresses:
+        - {{ router_admin_secondary_ip }}/{{ router_admin_secondary_prefix }}
+{% if router_admin_secondary_dns is defined and router_admin_secondary_dns %}
+      nameservers:
+        addresses:
+{% for dns in router_admin_secondary_dns %}
+          - {{ dns }}
+{% endfor %}
+{% endif %}
+{% if router_admin_nat_interface %}
+{% set nat_block %}
+{{ router_admin_nat_interface }}:
+  dhcp4: {{ (router_admin_nat_dhcp4 | default(true)) | ternary('true', 'false') }}
+  dhcp6: {{ (router_admin_nat_dhcp6 | default(false)) | ternary('true', 'false') }}
+  optional: {{ (router_admin_nat_optional | default(true)) | ternary('true', 'false') }}
+{% if router_admin_nat_addresses is defined and router_admin_nat_addresses %}
+  addresses:
+{% for addr in router_admin_nat_addresses %}
+    - {{ addr }}
+{% endfor %}
+{% endif %}
+{% if router_admin_nat_nameservers is defined and router_admin_nat_nameservers %}
+  nameservers:
+    addresses:
+{% for dns in router_admin_nat_nameservers %}
+      - {{ dns }}
+{% endfor %}
+{% endif %}
+{% endset %}
+{{ nat_block | indent(4, True) }}
+{% endif %}

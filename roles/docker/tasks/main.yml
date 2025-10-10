@@ -1,0 +1,55 @@
+---
+- name: Ensure apt keyrings directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Download Docker GPG key (ASCII)
+  ansible.builtin.get_url:
+    url: "{{ docker_gpg_key_url }}"
+    dest: /etc/apt/keyrings/docker.asc
+    mode: '0644'
+    force: true
+  register: docker_gpg_download
+
+- name: Reset existing Docker GPG keyring if key changed
+  ansible.builtin.file:
+    path: "{{ docker_gpg_key_dest }}"
+    state: absent
+  when: docker_gpg_download is changed
+
+- name: Convert Docker GPG key to binary format
+  ansible.builtin.command: >-
+    gpg --dearmor --output {{ docker_gpg_key_dest }} /etc/apt/keyrings/docker.asc
+  when: docker_gpg_download is changed
+
+- name: Ensure Docker GPG key permissions
+  ansible.builtin.file:
+    path: "{{ docker_gpg_key_dest }}"
+    mode: '0644'
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: "{{ docker_apt_repo }}"
+    filename: docker
+    state: present
+
+- name: Install Docker packages
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: true
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Allow target users to run Docker without sudo
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: docker
+    append: true
+  loop: "{{ docker_users | default([]) }}"

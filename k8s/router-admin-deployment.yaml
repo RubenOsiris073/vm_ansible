@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-admin
+  labels:
+    app: router-admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: router-admin
+  template:
+    metadata:
+      labels:
+        app: router-admin
+    spec:
+      containers:
+        - name: router-admin
+          image: router-admin:local
+          imagePullPolicy: IfNotPresent
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: router-admin
+  labels:
+    app: router-admin
+spec:
+  type: ClusterIP
+  selector:
+    app: router-admin
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000

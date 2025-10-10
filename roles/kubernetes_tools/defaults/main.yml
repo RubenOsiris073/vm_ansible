@@ -1,0 +1,2 @@
+---
+k3s_node_ip: "{{ router_admin_secondary_ip | default(ansible_default_ipv4.address, true) }}"

@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+CONFIG_FILE="{{ routerlab_network_config_path }}"
+if [[ -f "${CONFIG_FILE}" ]]; then
+  # shellcheck disable=SC1090
+  source "${CONFIG_FILE}"
+fi
+
+BRIDGE_NAME="${BRIDGE_NAME:-{{ routerlab_bridge_name }}}"
+BRIDGE_ADDRESS="${BRIDGE_ADDRESS:-{{ routerlab_bridge_address }}}"
+TAP_NAME="${TAP_NAME:-{{ routerlab_tap_name }}}"
+TAP_OWNER="${TAP_OWNER:-{{ routerlab_tap_owner }}}"
+IP_FORWARD="${IP_FORWARD:-{{ '1' if routerlab_enable_ip_forward else '0' }}}"
+
+log() {
+  echo "[routerlab-network] $*"
+}
+
+ensure_bridge() {
+  if ! ip link show "${BRIDGE_NAME}" >/dev/null 2>&1; then
+    log "Creating bridge ${BRIDGE_NAME}"
+    ip link add "${BRIDGE_NAME}" type bridge
+  fi
+
+  log "Bringing bridge ${BRIDGE_NAME} up"
+  ip link set "${BRIDGE_NAME}" up
+
+  if [[ -n "${BRIDGE_ADDRESS}" ]]; then
+    log "Ensuring bridge address ${BRIDGE_ADDRESS}"
+    ip address replace "${BRIDGE_ADDRESS}" dev "${BRIDGE_NAME}"
+  fi
+}
+
+ensure_tap() {
+  if [[ -z "${TAP_NAME}" ]]; then
+    return
+  fi
+
+  if ! ip link show "${TAP_NAME}" >/dev/null 2>&1; then
+    log "Creating tap ${TAP_NAME}"
+    if [[ -n "${TAP_OWNER}" ]]; then
+      ip tuntap add dev "${TAP_NAME}" mode tap user "${TAP_OWNER}"
+    else
+      ip tuntap add dev "${TAP_NAME}" mode tap
+    fi
+  fi
+
+  log "Bringing tap ${TAP_NAME} up"
+  ip link set "${TAP_NAME}" up
+
+  CURRENT_MASTER="$(bridge link show dev "${TAP_NAME}" 2>/dev/null | awk '/master/ {print $4; exit}')"
+  if [[ "${CURRENT_MASTER}" != "${BRIDGE_NAME}" ]]; then
+    log "Attaching ${TAP_NAME} to ${BRIDGE_NAME}"
+    ip link set "${TAP_NAME}" master "${BRIDGE_NAME}"
+  fi
+}
+
+configure_sysctl() {
+  if [[ "${IP_FORWARD}" == "1" ]]; then
+    log "Enabling IPv4 forwarding"
+    sysctl -w net.ipv4.ip_forward=1 >/dev/null
+  fi
+}
+
+ensure_bridge
+ensure_tap
+configure_sysctl
+
+log "Network helper completed"

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Conexion al Router</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Router Admin UI</h1>
+        <p>Realiza pruebas rápidas de conexión SSH hacia tu router.</p>
+      </header>
+
+      <div class="layout">
+        <section class="card form-card">
+          <form id="telnet-form">
+            <div class="field">
+              <label for="ip">IP del router</label>
+              <input id="ip" name="ip" type="text" required placeholder="192.168.1.1" />
+            </div>
+
+            <div class="field">
+              <label for="username">Usuario</label>
+              <input id="username" name="username" type="text" placeholder="admin" />
+            </div>
+
+            <div class="field">
+              <label for="password">Contraseña</label>
+              <input id="password" name="password" type="password" />
+            </div>
+
+            <div class="actions">
+              <button type="submit" id="connect-btn">Conectar</button>
+              <button type="button" id="disconnect-btn" class="secondary" disabled>Desconectar</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card shell-card">
+          <div
+            id="terminal"
+            class="terminal"
+            tabindex="0"
+            role="textbox"
+            aria-live="polite"
+            aria-label="Terminal telnet"
+          >Pulsa “Conectar” para iniciar la sesión.
+          </div>
+          <p class="terminal-hint">La terminal acepta atajos comunes (Enter, Backspace, Tab, flechas, Ctrl+C). Haz clic para enfocarla.</p>
+        </section>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

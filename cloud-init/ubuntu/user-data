@@ -1,0 +1,24 @@
+#cloud-config
+hostname: ubuntu-ansible
+manage_etc_hosts: true
+users:
+  - name: ubuntu
+    gecos: Ubuntu Admin
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    groups: users, admin
+    shell: /bin/bash
+    lock_passwd: false
+    passwd: "$6$R40aoQwUd5pfW3gx$GzopEpEG422rCSQTxwQGrdiDwY5DhxCGzhpyC8q9AQL7tvoFHrLV4/t/OrftT.jifPGCat1B6hWv8tXaUr1mr/"
+    ssh_authorized_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID1UY5RcEWw0UlZodm48fVyx+oqizE64J5ihXueV8FMo os@pc"
+package_update: true
+package_upgrade: true
+packages:
+  - python3
+  - python3-apt
+  - qemu-guest-agent
+runcmd:
+  - [ systemctl, enable, --now, ssh ]
+  - [ systemctl, restart, ssh ]
+ssh_pwauth: true
+final_message: "Cloud-init provisioning completed at $TIMESTAMP"

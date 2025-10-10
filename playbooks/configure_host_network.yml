@@ -1,0 +1,5 @@
+- name: Configure host bridge for router lab access
+  hosts: routerlab_host
+  become: true
+  roles:
+    - host_networking
