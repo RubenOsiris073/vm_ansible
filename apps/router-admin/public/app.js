@@ -1,279 +1,253 @@
-const form = document.getElementById('telnet-form');
+// Router RESTCONF Admin - JavaScript para HTML recuperado
+console.log('Iniciando Router RESTCONF Admin...');
+
+// Elementos del DOM
+const connectionForm = document.getElementById('connection-form');
 const connectBtn = document.getElementById('connect-btn');
 const disconnectBtn = document.getElementById('disconnect-btn');
-const terminal = document.getElementById('terminal');
+const connectionStatus = document.getElementById('connection-status');
 
 const ipInput = document.getElementById('ip');
+const portInput = document.getElementById('port');
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 
-const websocketUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/shell`;
+const operationSelect = document.getElementById('operation');
+const customEndpointDiv = document.getElementById('custom-endpoint');
+const customEndpointInput = document.getElementById('endpoint');
+const executeBtn = document.getElementById('execute-btn');
+const clearBtn = document.getElementById('clear-btn');
+const resultArea = document.getElementById('result-area');
 
-let socket = null;
-let sessionState = 'idle'; // idle | connecting | connected
-let terminalBuffer = 'Pulsa “Conectar” para iniciar la sesión.\n';
-let currentLine = '';
-let history = [];
-let historyIndex = 0;
+// Radio buttons para método HTTP
+const methodRadios = document.querySelectorAll('input[name="method"]');
+const dataField = document.getElementById('data-field');
+const dataTextarea = document.getElementById('data');
 
-function renderTerminal() {
-  terminal.textContent = terminalBuffer + (sessionState === 'connected' ? currentLine : '');
-  terminal.scrollTop = terminal.scrollHeight;
+// Variables de estado
+let isConnected = false;
+
+// Valores por defecto
+ipInput.value = '192.168.77.4';
+portInput.value = '443';
+usernameInput.value = 'admin';
+passwordInput.value = 'admin';
+
+// Funciones de utilidad
+function updateConnectionStatus(message, type = 'info') {
+  connectionStatus.innerHTML = `<div class="status-message ${type}">${message}</div>`;
 }
 
-function appendLine(text, variant = 'output') {
-  if (!text) {
-    return;
-  }
-  const prefix = variant === 'status' ? '[info] ' : variant === 'error' ? '[error] ' : '';
-  terminalBuffer += `${prefix}${text}\n`;
-  renderTerminal();
-}
-
-function appendOutput(text) {
-  if (!text) {
-    return;
-  }
-  const normalized = text.replace(/\r/g, '');
-  terminalBuffer += normalized;
-  renderTerminal();
-}
-
-function resetTerminal() {
-  terminalBuffer = 'Pulsa “Conectar” para iniciar la sesión.\n';
-  currentLine = '';
-  history = [];
-  historyIndex = 0;
-  renderTerminal();
-}
-
-function setSessionState(state) {
-  sessionState = state;
-
-  const isIdle = state === 'idle';
-  const isConnecting = state === 'connecting';
-  const isConnected = state === 'connected';
-
-  connectBtn.disabled = !isIdle;
-  disconnectBtn.disabled = isIdle;
-
-  [ipInput, usernameInput, passwordInput].forEach((input) => {
-    input.disabled = !isIdle;
-  });
-
-  terminal.classList.toggle('disabled', !isConnected);
-
-  if (isConnected) {
-    terminal.focus();
-  } else if (isConnecting) {
-    terminal.focus();
-  }
-
-  renderTerminal();
-}
-
-function ensureSocketClosed() {
-  if (socket) {
-    socket.close();
-    socket = null;
+function updateConnectionState(connected) {
+  isConnected = connected;
+  connectBtn.disabled = connected;
+  disconnectBtn.disabled = !connected;
+  executeBtn.disabled = !connected;
+  
+  if (connected) {
+    connectBtn.textContent = 'Conectado';
+    disconnectBtn.textContent = 'Desconectar';
+    updateConnectionStatus('✓ Conectado al router via RESTCONF', 'success');
+  } else {
+    connectBtn.textContent = 'Conectar';
+    disconnectBtn.textContent = 'Desconectar';
+    updateConnectionStatus('Desconectado', 'info');
   }
 }
 
-function sendCommand(command) {
-  if (!socket || socket.readyState !== WebSocket.OPEN) {
-    return;
+function addResult(content, type = 'info') {
+  const timestamp = new Date().toLocaleTimeString();
+  const resultDiv = document.createElement('div');
+  resultDiv.className = `result-item ${type}`;
+  
+  if (type === 'json') {
+    resultDiv.innerHTML = `
+      <div class="result-header">[${timestamp}] Respuesta:</div>
+      <pre class="result-json">${JSON.stringify(content, null, 2)}</pre>
+    `;
+  } else {
+    resultDiv.innerHTML = `<div class="result-text">[${timestamp}] ${content}</div>`;
   }
-
-  const rawCommand = typeof command === 'string' ? command : '';
-  const trimmed = rawCommand.trim();
-
-  if (!trimmed) {
-    sendControl('\r');
-    terminalBuffer += '\n';
-    currentLine = '';
-    renderTerminal();
-    return;
+  
+  // Remover placeholder si existe
+  const placeholder = resultArea.querySelector('.placeholder');
+  if (placeholder) {
+    placeholder.remove();
   }
-
-  socket.send(JSON.stringify({ type: 'command', command: trimmed }));
-  history.push(trimmed);
-  historyIndex = history.length;
-  terminalBuffer += `${trimmed}\n`;
-  currentLine = '';
-  renderTerminal();
+  
+  resultArea.appendChild(resultDiv);
+  resultArea.scrollTop = resultArea.scrollHeight;
 }
 
-function sendControl(sequence) {
-  if (!socket || socket.readyState !== WebSocket.OPEN || !sequence) {
-    return;
+// Función para probar conectividad RESTCONF
+async function testConnection(ip, port, username, password) {
+  try {
+    const response = await fetch('/api/router/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip, port, username, password })
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
   }
-  socket.send(JSON.stringify({ type: 'control', data: sequence }));
 }
 
-function startSession(credentials) {
-  ensureSocketClosed();
-  resetTerminal();
-  appendLine(`Conectando a ${credentials.ip}:23...`, 'status');
-  setSessionState('connecting');
-
-  socket = new WebSocket(websocketUrl);
-
-  socket.addEventListener('open', () => {
-    socket.send(JSON.stringify({
-      type: 'connect',
-      ip: credentials.ip,
-      username: credentials.username,
-      password: credentials.password
-    }));
-  });
-
-  socket.addEventListener('message', (event) => {
-    let data;
-    try {
-      data = JSON.parse(event.data);
-    } catch (error) {
-      appendLine('Respuesta inválida del servidor.', 'error');
-      return;
-    }
-
-    if (data.type === 'status') {
-      appendLine(data.message, 'status');
-      return;
-    }
-
-    if (data.type === 'output') {
-      appendOutput(data.data);
-      return;
-    }
-
-    if (data.type === 'error') {
-      appendLine(data.message || 'Error en la sesión', 'error');
-      return;
-    }
-
-    if (data.type === 'ready') {
-      setSessionState('connected');
-      appendLine('Sesión lista. Escribe tus comandos.', 'status');
-      return;
-    }
-
-    if (data.type === 'closed') {
-      setSessionState('idle');
-      appendLine('Sesión cerrada.', 'status');
-      return;
-    }
-  });
-
-  socket.addEventListener('close', () => {
-    setSessionState('idle');
-    socket = null;
-  });
-
-  socket.addEventListener('error', () => {
-    appendLine('Error en la conexión WebSocket.', 'error');
-  });
+// Función para ejecutar operaciones RESTCONF
+async function executeOperation(operation, ip, port, username, password, method = 'GET', endpoint = null, data = null) {
+  try {
+    const body = {
+      operation,
+      router: { ip, port, username, password },
+      httpMethod: method
+    };
+    
+    if (endpoint) body.endpoint = endpoint;
+    if (data) body.payload = data;
+    
+    const response = await fetch('/api/router/restconf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 }
 
-form.addEventListener('submit', (event) => {
+// Event Listeners
+
+// Conectar al router
+connectionForm.addEventListener('submit', async (event) => {
   event.preventDefault();
-
-  const formData = new FormData(form);
-  const payload = {
-    ip: (formData.get('ip') || '').trim(),
-    username: (formData.get('username') || '').trim(),
-    password: formData.get('password') || ''
-  };
-
-  if (!payload.ip) {
-    appendLine('Debes indicar la IP del router.', 'error');
+  
+  if (isConnected) return;
+  
+  const ip = ipInput.value.trim();
+  const port = portInput.value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  
+  if (!ip || !port || !username || !password) {
+    updateConnectionStatus('❌ Completa todos los campos', 'error');
     return;
   }
-
-  startSession(payload);
+  
+  connectBtn.disabled = true;
+  connectBtn.textContent = 'Conectando...';
+  updateConnectionStatus('🔄 Conectando al router...', 'info');
+  
+  const result = await testConnection(ip, port, username, password);
+  
+  if (result.success) {
+    updateConnectionState(true);
+    addResult(`Conectado exitosamente a ${ip}:${port}`, 'success');
+    
+    // Obtener hostname como prueba
+    const hostnameResult = await executeOperation('get-hostname', ip, port, username, password);
+    if (hostnameResult.success) {
+      const hostname = hostnameResult.data['Cisco-IOS-XE-native:hostname'];
+      addResult(`Router detectado: ${hostname}`, 'info');
+    }
+  } else {
+    updateConnectionState(false);
+    updateConnectionStatus(`❌ Error: ${result.error}`, 'error');
+    addResult(`Error de conexión: ${result.error}`, 'error');
+  }
 });
 
+// Desconectar
 disconnectBtn.addEventListener('click', () => {
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.send(JSON.stringify({ type: 'disconnect' }));
-  }
-  ensureSocketClosed();
-  setSessionState('idle');
-  resetTerminal();
+  updateConnectionState(false);
+  addResult('Desconectado del router', 'info');
 });
 
-terminal.addEventListener('keydown', (event) => {
-  if (sessionState !== 'connected') {
-    return;
+// Mostrar/ocultar endpoint personalizado
+operationSelect.addEventListener('change', () => {
+  if (operationSelect.value === 'custom') {
+    customEndpointDiv.style.display = 'block';
+  } else {
+    customEndpointDiv.style.display = 'none';
   }
+});
 
-  if (event.key === 'Backspace') {
-    if (currentLine.length > 0) {
-      currentLine = currentLine.slice(0, -1);
-      renderTerminal();
-    }
-    event.preventDefault();
-    return;
-  }
-
-  if (event.key === 'Enter') {
-    event.preventDefault();
-    const command = currentLine;
-    sendCommand(command);
-    return;
-  }
-
-  if (event.key === 'ArrowUp') {
-    event.preventDefault();
-    if (historyIndex > 0) {
-      historyIndex -= 1;
-      currentLine = history[historyIndex] || '';
-      renderTerminal();
-    }
-    return;
-  }
-
-  if (event.key === 'ArrowDown') {
-    event.preventDefault();
-    if (historyIndex < history.length - 1) {
-      historyIndex += 1;
-      currentLine = history[historyIndex] || '';
+// Mostrar/ocultar campo de datos para POST/PUT
+methodRadios.forEach(radio => {
+  radio.addEventListener('change', () => {
+    const method = document.querySelector('input[name="method"]:checked').value;
+    if (method === 'POST' || method === 'PUT') {
+      dataField.style.display = 'block';
     } else {
-      historyIndex = history.length;
-      currentLine = '';
+      dataField.style.display = 'none';
     }
-    renderTerminal();
-    return;
-  }
-
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    sendControl('\t');
-    return;
-  }
-
-  if (event.ctrlKey && event.key.toLowerCase() === 'c') {
-    event.preventDefault();
-    sendControl('\u0003');
-    appendLine('^C', 'status');
-    currentLine = '';
-    renderTerminal();
-    return;
-  }
-
-  if (event.key.length === 1 && !event.metaKey && !event.ctrlKey && !event.altKey) {
-    currentLine += event.key;
-    renderTerminal();
-    event.preventDefault();
-  }
+  });
 });
 
-terminal.addEventListener('click', () => {
-  terminal.focus();
+// Ejecutar operación
+executeBtn.addEventListener('click', async () => {
+  if (!isConnected) {
+    addResult('❌ Debes conectarte primero', 'error');
+    return;
+  }
+  
+  const operation = operationSelect.value;
+  if (!operation) {
+    addResult('❌ Selecciona una operación', 'error');
+    return;
+  }
+  
+  const ip = ipInput.value.trim();
+  const port = portInput.value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  const method = document.querySelector('input[name="method"]:checked').value;
+  
+  let endpoint = null;
+  if (operation === 'custom') {
+    endpoint = customEndpointInput.value.trim();
+    if (!endpoint) {
+      addResult('❌ Introduce un endpoint personalizado', 'error');
+      return;
+    }
+  }
+  
+  let data = null;
+  if ((method === 'POST' || method === 'PUT') && dataTextarea.value.trim()) {
+    try {
+      data = JSON.parse(dataTextarea.value.trim());
+    } catch (e) {
+      addResult('❌ Error en formato JSON', 'error');
+      return;
+    }
+  }
+  
+  executeBtn.disabled = true;
+  executeBtn.textContent = 'Ejecutando...';
+  addResult(`�� Ejecutando ${method} ${operation}${endpoint ? ` (${endpoint})` : ''}`, 'info');
+  
+  const result = await executeOperation(operation, ip, port, username, password, method, endpoint, data);
+  
+  if (result.success) {
+    addResult('✓ Operación completada', 'success');
+    addResult(result.data, 'json');
+  } else {
+    addResult(`❌ Error: ${result.error}`, 'error');
+  }
+  
+  executeBtn.disabled = false;
+  executeBtn.textContent = 'Ejecutar Operación';
 });
 
-window.addEventListener('beforeunload', () => {
-  ensureSocketClosed();
+// Limpiar resultados
+clearBtn.addEventListener('click', () => {
+  resultArea.innerHTML = '<p class="placeholder">Conecta al router y ejecuta una operación para ver los resultados aquí.</p>';
 });
 
-setSessionState('idle');
-resetTerminal();
+// Inicialización
+console.log('✓ Router RESTCONF Admin cargado');
+updateConnectionState(false);

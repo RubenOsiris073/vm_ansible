@@ -1,0 +1,31 @@
+# Router Admin RESTCONF - Dockerfile
+FROM node:18-alpine AS base
+WORKDIR /usr/src/app
+
+# Copiar package.json e instalar dependencias
+COPY package.json ./
+RUN npm install --only=production
+
+# Copiar archivos de la aplicación RESTCONF
+COPY server-restconf.js ./server.js
+COPY public/index-restconf.html ./public/index.html
+COPY public/app-restconf.js ./public/app.js
+COPY public/styles.css ./public/
+
+# Crear usuario no-root
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S routeradmin -u 1001
+
+# Cambiar ownership de archivos
+RUN chown -R routeradmin:nodejs /usr/src/app
+USER routeradmin
+
+# Exponer puerto
+EXPOSE 3000
+
+# Variables de entorno
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Comando de inicio
+CMD ["node", "server.js"]

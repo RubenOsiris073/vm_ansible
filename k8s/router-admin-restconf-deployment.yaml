@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: router-admin-restconf
+  labels:
+    app: router-admin-restconf
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: router-admin-restconf
+  template:
+    metadata:
+      labels:
+        app: router-admin-restconf
+    spec:
+      containers:
+        - name: router-admin
+          image: router-admin:optimized
+          imagePullPolicy: Never
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+          volumeMounts:
+            - name: restconf-server
+              mountPath: /usr/src/app/server.js
+              subPath: server.js
+            - name: restconf-frontend
+              mountPath: /usr/src/app/public/app.js
+              subPath: app.js
+            - name: restconf-frontend
+              mountPath: /usr/src/app/public/index.html
+              subPath: index.html
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 20
+      volumes:
+        - name: restconf-server
+          configMap:
+            name: restconf-server
+        - name: restconf-frontend
+          configMap:
+            name: restconf-frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: router-admin-restconf
+  labels:
+    app: router-admin-restconf
+spec:
+  type: ClusterIP
+  selector:
+    app: router-admin-restconf
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
