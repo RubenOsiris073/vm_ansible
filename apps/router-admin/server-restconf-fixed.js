@@ -119,6 +119,18 @@ app.post('/api/router/restconf', async (req, res) => {
           targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface';
           method = 'POST';
           break;
+        case 'delete-loopback':
+        case 'deleteLoopback':
+          // El endpoint específico se construirá más adelante usando el payload
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/Loopback';
+          method = 'DELETE';
+          break;
+        case 'delete-interface-description':
+        case 'deleteInterfaceDescription':
+          // El endpoint específico se construirá más adelante
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet';
+          method = 'DELETE';
+          break;
         default:
           throw new Error(`Operación '${operation}' no soportada`);
       }
@@ -129,6 +141,24 @@ app.post('/api/router/restconf', async (req, res) => {
       const interfaceName = payload['Cisco-IOS-XE-native:GigabitEthernet']?.name;
       if (interfaceName) {
         targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet=${interfaceName}`;
+      }
+    }
+    
+    // Para operaciones DELETE, necesitamos información adicional del cuerpo de la petición
+    if (operation === 'deleteLoopback') {
+      // El número de loopback viene en el cuerpo de la petición
+      const loopbackNumber = req.body.loopbackNumber;
+      if (loopbackNumber) {
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/Loopback=${loopbackNumber}`;
+      }
+    }
+    
+    if (operation === 'deleteInterfaceDescription') {
+      // El nombre de la interface viene en el cuerpo de la petición
+      const interfaceName = req.body.interfaceName;
+      if (interfaceName) {
+        const interfaceNumber = interfaceName.split('=')[1];
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet=${interfaceNumber}/description`;
       }
     }
     
@@ -173,6 +203,93 @@ app.post('/api/router/restconf', async (req, res) => {
       error: error.message,
       operation: operation,
       details: error.response ? error.response.data : null
+    });
+  }
+});
+
+// API para ping de red
+app.post('/api/network/ping', async (req, res) => {
+  const { ip, count = 5 } = req.body;
+  
+  if (!ip) {
+    return res.json({ success: false, error: 'IP address is required' });
+  }
+  
+  try {
+    const { spawn } = require('child_process');
+    
+    // Usar ping con parámetros seguros
+    const pingArgs = ['-c', count.toString(), '-W', '3', ip];
+    const pingProcess = spawn('ping', pingArgs);
+    
+    let output = '';
+    let errorOutput = '';
+    
+    pingProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    pingProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    pingProcess.on('close', (code) => {
+      if (code === 0) {
+        // Parse ping output para estadísticas
+        const lines = output.split('\n');
+        const statsLine = lines.find(line => line.includes('packets transmitted'));
+        const timeLine = lines.find(line => line.includes('min/avg/max'));
+        
+        let stats = {
+          sent: count,
+          received: 0,
+          loss: 100
+        };
+        
+        if (statsLine) {
+          const match = statsLine.match(/(\d+) packets transmitted, (\d+) (?:packets )?received/);
+          if (match) {
+            stats.sent = parseInt(match[1]);
+            stats.received = parseInt(match[2]);
+            stats.loss = Math.round(((stats.sent - stats.received) / stats.sent) * 100);
+          }
+        }
+        
+        if (timeLine) {
+          const timeMatch = timeLine.match(/min\/avg\/max.*?=.*?(\d+\.\d+)/);
+          if (timeMatch) {
+            stats.avgTime = parseFloat(timeMatch[1]);
+          }
+        }
+        
+        res.json({
+          success: true,
+          output: output,
+          stats: stats
+        });
+      } else {
+        res.json({
+          success: false,
+          error: `Ping failed with code ${code}`,
+          output: errorOutput || output
+        });
+      }
+    });
+    
+    // Timeout para evitar procesos colgados
+    setTimeout(() => {
+      pingProcess.kill('SIGTERM');
+      res.json({
+        success: false,
+        error: 'Ping timeout after 30 seconds'
+      });
+    }, 30000);
+    
+  } catch (error) {
+    console.error('Error ejecutando ping:', error.message);
+    res.json({
+      success: false,
+      error: error.message
     });
   }
 });

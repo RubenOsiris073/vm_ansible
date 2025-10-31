@@ -31,6 +31,21 @@ const loopbackNumberInput = document.getElementById('loopback-number');
 const loopbackIpInput = document.getElementById('loopback-ip');
 const loopbackMaskSelect = document.getElementById('loopback-mask');
 const loopbackDescInput = document.getElementById('loopback-desc');
+const deleteLoopbackField = document.getElementById('delete-loopback-field');
+const deleteLoopbackNumberInput = document.getElementById('delete-loopback-number');
+const deleteInterfaceDescField = document.getElementById('delete-interface-desc-field');
+const deleteInterfaceNameSelect = document.getElementById('delete-interface-name');
+
+// Elementos del modal de ping
+const pingTestBtn = document.getElementById('ping-test-btn');
+const pingModal = document.getElementById('ping-modal');
+const pingModalClose = document.getElementById('ping-modal-close');
+const pingIpInput = document.getElementById('ping-ip');
+const pingCountSelect = document.getElementById('ping-count');
+const executePingBtn = document.getElementById('execute-ping-btn');
+const cancelPingBtn = document.getElementById('cancel-ping-btn');
+const pingResult = document.getElementById('ping-result');
+const pingOutput = document.getElementById('ping-output');
 
 const dataField = document.getElementById('data-field');
 const dataTextarea = document.getElementById('data');
@@ -47,6 +62,9 @@ function getHttpMethodForOperation(operation) {
       return 'PATCH';
     case 'addLoopback':
       return 'POST';
+    case 'deleteLoopback':
+    case 'deleteInterfaceDescription':
+      return 'DELETE';
     case 'custom':
       return customMethodSelect.value;
     default:
@@ -62,6 +80,92 @@ function updateCustomDataField() {
   } else {
     dataField.style.display = 'none';
   }
+}
+
+// Funciones para el modal de ping
+function openPingModal() {
+  console.log('Abriendo modal de ping...', pingModal);
+  if (pingModal) {
+    // Forzar que el modal sea visible
+    pingModal.style.display = 'flex';
+    pingModal.style.position = 'fixed';
+    pingModal.style.top = '0';
+    pingModal.style.left = '0';
+    pingModal.style.width = '100vw';
+    pingModal.style.height = '100vh';
+    pingModal.style.zIndex = '99999';
+    pingModal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    
+    pingIpInput.value = ipInput.value || '192.168.77.4'; // Pre-llenar con la IP del router
+    pingResult.style.display = 'none';
+    pingOutput.innerHTML = '';
+    console.log('Modal abierto correctamente con estilos forzados');
+    
+    // Agregar clase al body para prevenir scroll
+    document.body.style.overflow = 'hidden';
+  } else {
+    console.error('Error: pingModal no encontrado');
+  }
+}
+
+function closePingModal() {
+  pingModal.style.display = 'none';
+  pingResult.style.display = 'none';
+  pingOutput.innerHTML = '';
+  // Restaurar scroll del body
+  document.body.style.overflow = 'auto';
+}
+
+// Función para ejecutar ping
+async function executePing() {
+  console.log('executePing llamada - ejecutando ping desde modal');
+  const ip = pingIpInput.value.trim();
+  const count = pingCountSelect.value;
+  
+  if (!ip) {
+    pingOutput.innerHTML = '<span class="ping-error">❌ Por favor introduce una IP válida</span>';
+    pingResult.style.display = 'block';
+    return;
+  }
+  
+  executePingBtn.disabled = true;
+  executePingBtn.textContent = 'Ejecutando...';
+  pingResult.style.display = 'block';
+  pingOutput.innerHTML = '<span class="ping-info">🔄 Ejecutando ping a ' + ip + '...</span>';
+  
+  try {
+    const response = await fetch('/api/network/ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip: ip, count: parseInt(count) })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      let output = '<span class="ping-success">✅ Ping exitoso a ' + ip + '</span>\n\n';
+      output += '<span class="ping-info">Estadísticas:</span>\n';
+      output += '• Paquetes enviados: ' + result.stats.sent + '\n';
+      output += '• Paquetes recibidos: ' + result.stats.received + '\n';
+      output += '• Pérdida de paquetes: ' + result.stats.loss + '%\n';
+      
+      if (result.stats.avgTime) {
+        output += '• Tiempo promedio: ' + result.stats.avgTime + 'ms\n';
+      }
+      
+      output += '\n<span class="ping-info">Detalles:</span>\n';
+      output += result.output;
+      
+      pingOutput.innerHTML = output;
+    } else {
+      pingOutput.innerHTML = '<span class="ping-error">❌ Error en ping: ' + result.error + '</span>';
+    }
+  } catch (error) {
+    pingOutput.innerHTML = '<span class="ping-error">❌ Error de conectividad: ' + error.message + '</span>';
+  }
+  
+  executePingBtn.disabled = false;
+  executePingBtn.textContent = 'Ejecutar Ping';
 }
 
 // Valores por defecto
@@ -133,12 +237,13 @@ async function testConnection(ip, port, username, password) {
 }
 
 // Función para ejecutar operaciones RESTCONF
-async function executeOperation(operation, ip, port, username, password, method = 'GET', endpoint = null, data = null) {
+async function executeOperation(operation, ip, port, username, password, method = 'GET', endpoint = null, data = null, extraData = {}) {
   try {
     const body = {
       operation,
       router: { ip, port, username, password },
-      httpMethod: method
+      httpMethod: method,
+      ...extraData
     };
     
     if (endpoint) body.endpoint = endpoint;
@@ -211,6 +316,8 @@ operationSelect.addEventListener('change', () => {
   hostnameField.style.display = 'none';
   interfaceDescField.style.display = 'none';
   loopbackField.style.display = 'none';
+  deleteLoopbackField.style.display = 'none';
+  deleteInterfaceDescField.style.display = 'none';
   
   const operation = operationSelect.value;
   
@@ -230,6 +337,12 @@ operationSelect.addEventListener('change', () => {
     case 'addLoopback':
       loopbackField.style.display = 'block';
       break;
+    case 'deleteLoopback':
+      deleteLoopbackField.style.display = 'block';
+      break;
+    case 'deleteInterfaceDescription':
+      deleteInterfaceDescField.style.display = 'block';
+      break;
     default:
       // Para operaciones GET, no mostrar campos adicionales
       break;
@@ -238,6 +351,36 @@ operationSelect.addEventListener('change', () => {
 
 // Event listener para el método custom
 customMethodSelect.addEventListener('change', updateCustomDataField);
+
+// Event listeners para el modal de ping
+if (pingTestBtn) {
+  console.log('Agregando event listener al botón de ping');
+  pingTestBtn.addEventListener('click', function(event) {
+    console.log('Click detectado en botón de ping, ejecutando openPingModal');
+    event.preventDefault();
+    event.stopPropagation();
+    openPingModal();
+  });
+} else {
+  console.error('Error: pingTestBtn no encontrado');
+}
+pingModalClose.addEventListener('click', closePingModal);
+cancelPingBtn.addEventListener('click', closePingModal);
+executePingBtn.addEventListener('click', executePing);
+
+// Cerrar modal al hacer click fuera de él
+pingModal.addEventListener('click', (event) => {
+  if (event.target === pingModal) {
+    closePingModal();
+  }
+});
+
+// Cerrar modal con la tecla Escape
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && pingModal.style.display === 'flex') {
+    closePingModal();
+  }
+});
 
 // Ejecutar operación
 executeBtn.addEventListener('click', async () => {
@@ -334,6 +477,26 @@ executeBtn.addEventListener('click', async () => {
         };
         break;
         
+      case 'deleteLoopback':
+        const deleteLoopbackNumber = deleteLoopbackNumberInput.value.trim();
+        if (!deleteLoopbackNumber) {
+          addResult('❌ Introduce el número de loopback a eliminar', 'error');
+          return;
+        }
+        // Para DELETE, no necesitamos payload, solo el endpoint correcto
+        data = null;
+        break;
+        
+      case 'deleteInterfaceDescription':
+        const deleteInterfaceName = deleteInterfaceNameSelect.value;
+        if (!deleteInterfaceName) {
+          addResult('❌ Selecciona una interface', 'error');
+          return;
+        }
+        // Para DELETE de descripción, no necesitamos payload
+        data = null;
+        break;
+        
       case 'custom':
         // Para custom, usar el textarea JSON
         if (dataTextarea.value.trim()) {
@@ -364,7 +527,17 @@ executeBtn.addEventListener('click', async () => {
   executeBtn.textContent = 'Ejecutando...';
   addResult(`Ejecutando ${method} ${operation}${endpoint ? ` (${endpoint})` : ''}`, 'info');
   
-  const result = await executeOperation(operation, ip, port, username, password, method, endpoint, data);
+  let extraData = {};
+  
+  // Agregar información adicional para operaciones DELETE
+  if (operation === 'deleteLoopback') {
+    extraData.loopbackNumber = deleteLoopbackNumberInput.value.trim();
+  }
+  if (operation === 'deleteInterfaceDescription') {
+    extraData.interfaceName = deleteInterfaceNameSelect.value;
+  }
+  
+  const result = await executeOperation(operation, ip, port, username, password, method, endpoint, data, extraData);
   
   if (result.success) {
     addResult('✓ Operación completada', 'success');

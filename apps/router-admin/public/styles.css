@@ -10,7 +10,7 @@ body {
   color: #e2e8f0;
   min-height: 100vh;
   height: 100vh;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   justify-content: center;
 }
@@ -228,4 +228,436 @@ h2 {
     min-height: 300px;
     max-height: 60vh;
   }
+}
+
+/* Estilos para herramientas adicionales */
+.tools-card {
+  margin-top: 1rem;
+}
+
+.tools-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tool-button {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.tool-button:hover {
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(6, 182, 212, 0.3);
+}
+
+/* Estilos para herramientas integradas */
+.tools-section {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.tools-section h3 {
+  margin: 0 0 1rem;
+  color: #f1f5f9;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.tools-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.tool-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  border: none;
+  color: white;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tool-button:hover {
+  background: linear-gradient(135deg, #5856eb 0%, #7c3aed 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.tool-button:active {
+  transform: translateY(0);
+}
+
+/* Modal Elegante y Moderno */
+.simple-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.95);
+  backdrop-filter: blur(10px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
+  border: none;
+  border-radius: 16px;
+  width: min(480px, 92vw);
+  max-height: 85vh;
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.75rem 2rem 1.25rem;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: white;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.modal-close {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.modal-body {
+  padding: 2rem;
+  background: white;
+  color: #1f2937;
+}
+
+.ping-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  justify-content: flex-end;
+}
+
+.ping-actions button {
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.ping-actions button:first-child {
+  background: #3b82f6;
+  color: white;
+}
+
+.ping-actions button:first-child:hover {
+  background: #2563eb;
+}
+
+.ping-actions button:last-child {
+  background: #64748b;
+  color: white;
+}
+
+.ping-actions button:last-child:hover {
+  background: #475569;
+}
+
+.ping-result-container {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ping-result-container h4 {
+  margin: 0 0 1rem;
+  color: #f1f5f9;
+  font-size: 1.1rem;
+}
+
+.ping-output {
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ping-stats {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  color: #22c55e;
+  font-weight: 500;
+}
+
+.ping-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  margin-top: 0.75rem;
+  color: #ef4444;
+  font-weight: 500;
+}
+
+/* Campos del Modal */
+.modal-body .field {
+  margin-bottom: 1.5rem;
+}
+
+.modal-body .field label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.modal-body .field input, 
+.modal-body .field select {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  color: #1f2937;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.modal-body .field input:focus, 
+.modal-body .field select:focus {
+  border-color: #3b82f6;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-body .field input::placeholder {
+  color: #9ca3af;
+}
+
+/* Botones del Modal */
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  justify-content: flex-end;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 0.875rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-size: 0.95rem;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+/* Resultado del Ping */
+.ping-result-container {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #f3f4f6;
+}
+
+.ping-result-container h4 {
+  margin: 0 0 1rem;
+  color: #1f2937;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.ping-output {
+  background: #1f2937;
+  border: 2px solid #374151;
+  border-radius: 10px;
+  padding: 1.25rem;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #e5e7eb;
+  white-space: pre-wrap;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+/* Animaciones */
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.9) translateY(20px); 
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1) translateY(0); 
+  }
+}
+
+.ping-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.ping-actions button {
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+#execute-ping-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+#execute-ping-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+}
+
+#execute-ping-btn:disabled {
+  background: #374151;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#cancel-ping-btn {
+  background: #374151;
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+#cancel-ping-btn:hover {
+  background: #4b5563;
+}
+
+.ping-result-container {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.5rem;
+}
+
+.ping-result-container h4 {
+  margin: 0 0 1rem 0;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.ping-output {
+  background: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: #e2e8f0;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+.ping-success {
+  color: #10b981;
+}
+
+.ping-error {
+  color: #ef4444;
+}
+
+.ping-info {
+  color: #06b6d4;
 }

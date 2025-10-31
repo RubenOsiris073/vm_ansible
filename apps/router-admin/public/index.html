@@ -61,6 +61,8 @@
                 <option value="setHostname">PUT - Cambiar Hostname</option>
                 <option value="setInterfaceDescription">PATCH - Cambiar Descripción Interface</option>
                 <option value="addLoopback">POST - Agregar Interface Loopback</option>
+                <option value="deleteLoopback">DELETE - Eliminar Interface Loopback</option>
+                <option value="deleteInterfaceDescription">DELETE - Eliminar Descripción de Interface</option>
               </optgroup>
               <optgroup label="Personalizado">
                 <option value="custom">Endpoint Personalizado (GET/PUT/PATCH/POST/DELETE)</option>
@@ -114,6 +116,21 @@
             <input id="loopback-desc" type="text" placeholder="Nueva interface loopback" />
           </div>
 
+          <div id="delete-loopback-field" class="field" style="display: none;">
+            <label for="delete-loopback-number">Número de Loopback a eliminar:</label>
+            <input id="delete-loopback-number" type="number" placeholder="100" min="0" max="2147483647" />
+            <small>⚠️ Esta operación eliminará completamente la interface loopback especificada</small>
+          </div>
+
+          <div id="delete-interface-desc-field" class="field" style="display: none;">
+            <label for="delete-interface-name">Interface:</label>
+            <select id="delete-interface-name">
+              <option value="GigabitEthernet=1">GigabitEthernet1</option>
+              <option value="GigabitEthernet=2">GigabitEthernet2</option>
+            </select>
+            <small>⚠️ Esta operación eliminará solo la descripción de la interface (no afecta IP ni conectividad)</small>
+          </div>
+
 
 
           <div id="data-field" class="field" style="display: none;">
@@ -125,6 +142,14 @@
             <button type="button" id="execute-btn" disabled>Ejecutar Operación</button>
             <button type="button" id="clear-btn">Limpiar Resultado</button>
           </div>
+          
+          <!-- Sección de herramientas de red -->
+          <div class="tools-section">
+            <h3>Herramientas de Red</h3>
+            <div class="tools-actions">
+              <button type="button" id="ping-test-btn" class="tool-button">Probar Conectividad (Ping)</button>
+            </div>
+          </div>
         </section>
 
         <section class="card result-card">
@@ -135,6 +160,42 @@
         </section>
       </div>
     </main>
+
+    <!-- Modal Simple para Ping Test -->
+    <div id="ping-modal" class="simple-modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Probar Conectividad</h3>
+          <button class="modal-close" id="ping-modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="field">
+            <label for="ping-ip">Dirección IP o Hostname:</label>
+            <input id="ping-ip" type="text" placeholder="192.168.77.4" />
+          </div>
+          
+          <div class="field">
+            <label for="ping-count">Cantidad de pings:</label>
+            <select id="ping-count">
+              <option value="3">3 pings</option>
+              <option value="5" selected>5 pings</option>
+              <option value="10">10 pings</option>
+            </select>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" id="execute-ping-btn" class="btn-primary">Ejecutar Ping</button>
+            <button type="button" id="cancel-ping-btn" class="btn-secondary">Cancelar</button>
+          </div>
+          
+          <div id="ping-result" class="ping-result-container" style="display: none;">
+            <h4>Resultado del Ping:</h4>
+            <div id="ping-output" class="ping-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <script src="app.js"></script>
   </body>
