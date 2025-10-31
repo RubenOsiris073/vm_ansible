@@ -95,7 +95,7 @@ async function executePing() {
   const count = pingCountSelect.value;
   
   if (!ip) {
-    pingOutput.innerHTML = '<span class="ping-error">❌ Por favor introduce una IP válida</span>';
+    pingOutput.innerHTML = '<span class="ping-error">Por favor introduce una IP válida</span>';
     pingResult.style.display = 'block';
     return;
   }
@@ -103,7 +103,7 @@ async function executePing() {
   executePingBtn.disabled = true;
   executePingBtn.textContent = 'Ejecutando...';
   pingResult.style.display = 'block';
-  pingOutput.innerHTML = '<span class="ping-info">🔄 Ejecutando ping a ' + ip + '...</span>';
+  pingOutput.innerHTML = '<span class="ping-info">Ejecutando ping a ' + ip + '...</span>';
   
   try {
     const response = await fetch('/api/network/ping', {
@@ -115,7 +115,7 @@ async function executePing() {
     const result = await response.json();
     
     if (result.success) {
-      let output = '<span class="ping-success">✅ Ping exitoso a ' + ip + '</span>\n\n';
+      let output = '<span class="ping-success">Ping exitoso a ' + ip + '</span>\n\n';
       output += '<span class="ping-info">Estadísticas:</span>\n';
       output += '• Paquetes enviados: ' + result.stats.sent + '\n';
       output += '• Paquetes recibidos: ' + result.stats.received + '\n';
@@ -130,10 +130,10 @@ async function executePing() {
       
       pingOutput.innerHTML = output;
     } else {
-      pingOutput.innerHTML = '<span class="ping-error">❌ Error en ping: ' + result.error + '</span>';
+      pingOutput.innerHTML = '<span class="ping-error">Error en ping: ' + result.error + '</span>';
     }
   } catch (error) {
-    pingOutput.innerHTML = '<span class="ping-error">❌ Error de conectividad: ' + error.message + '</span>';
+    pingOutput.innerHTML = '<span class="ping-error">Error de conectividad: ' + error.message + '</span>';
   }
   
   executePingBtn.disabled = false;
@@ -248,13 +248,13 @@ connectionForm.addEventListener('submit', async (event) => {
   const password = passwordInput.value;
   
   if (!ip || !port || !username || !password) {
-    updateConnectionStatus('❌ Completa todos los campos', 'error');
+    updateConnectionStatus('Completa todos los campos', 'error');
     return;
   }
   
   connectBtn.disabled = true;
   connectBtn.textContent = 'Conectando...';
-  updateConnectionStatus('🔄 Conectando al router...', 'info');
+  updateConnectionStatus('Conectando al router...', 'info');
   
   const result = await testConnection(ip, port, username, password);
   
@@ -270,7 +270,7 @@ connectionForm.addEventListener('submit', async (event) => {
     }
   } else {
     updateConnectionState(false);
-    updateConnectionStatus(`❌ Error: ${result.error}`, 'error');
+    updateConnectionStatus(`Error: ${result.error}`, 'error');
     addResult(`Error de conexión: ${result.error}`, 'error');
   }
 });
@@ -335,13 +335,13 @@ document.addEventListener('DOMContentLoaded', initializePing);
 // Ejecutar operación
 executeBtn.addEventListener('click', async () => {
   if (!isConnected) {
-    addResult('❌ Debes conectarte primero', 'error');
+    addResult('Debes conectarte primero', 'error');
     return;
   }
   
   const operation = operationSelect.value;
   if (!operation) {
-    addResult('❌ Selecciona una operación', 'error');
+    addResult('Selecciona una operación', 'error');
     return;
   }
   
@@ -355,7 +355,7 @@ executeBtn.addEventListener('click', async () => {
   if (operation === 'custom') {
     endpoint = customEndpointInput.value.trim();
     if (!endpoint) {
-      addResult('❌ Introduce un endpoint personalizado', 'error');
+      addResult('Introduce un endpoint personalizado', 'error');
       return;
     }
   }
@@ -368,7 +368,7 @@ executeBtn.addEventListener('click', async () => {
       case 'setHostname':
         const newHostname = newHostnameInput.value.trim();
         if (!newHostname) {
-          addResult('❌ Introduce el nuevo hostname', 'error');
+          addResult('Introduce el nuevo hostname', 'error');
           return;
         }
         data = {
@@ -380,7 +380,7 @@ executeBtn.addEventListener('click', async () => {
         const interfaceName = interfaceNameSelect.value;
         const interfaceDesc = interfaceDescInput.value.trim();
         if (!interfaceDesc) {
-          addResult('❌ Introduce la descripción de la interface', 'error');
+          addResult('Introduce la descripción de la interface', 'error');
           return;
         }
         
@@ -402,7 +402,7 @@ executeBtn.addEventListener('click', async () => {
         const loopbackDesc = loopbackDescInput.value.trim();
         
         if (!loopbackNumber || !loopbackIp) {
-          addResult('❌ Introduce el número de loopback y la IP', 'error');
+          addResult('Introduce el número de loopback y la IP', 'error');
           return;
         }
         
@@ -430,7 +430,7 @@ executeBtn.addEventListener('click', async () => {
       case 'deleteLoopback':
         const deleteLoopbackNumber = deleteLoopbackNumberInput.value.trim();
         if (!deleteLoopbackNumber) {
-          addResult('❌ Introduce el número de loopback a eliminar', 'error');
+          addResult('Introduce el número de loopback a eliminar', 'error');
           return;
         }
         // Para DELETE, no necesitamos payload, solo el endpoint correcto
@@ -440,7 +440,7 @@ executeBtn.addEventListener('click', async () => {
       case 'deleteInterfaceDescription':
         const deleteInterfaceName = deleteInterfaceNameSelect.value;
         if (!deleteInterfaceName) {
-          addResult('❌ Selecciona una interface', 'error');
+          addResult('Selecciona una interface', 'error');
           return;
         }
         // Para DELETE de descripción, no necesitamos payload
@@ -453,7 +453,7 @@ executeBtn.addEventListener('click', async () => {
           try {
             data = JSON.parse(dataTextarea.value.trim());
           } catch (e) {
-            addResult('❌ Error en formato JSON', 'error');
+            addResult('Error en formato JSON', 'error');
             return;
           }
         }
@@ -465,7 +465,7 @@ executeBtn.addEventListener('click', async () => {
           try {
             data = JSON.parse(dataTextarea.value.trim());
           } catch (e) {
-            addResult('❌ Error en formato JSON', 'error');
+            addResult('Error en formato JSON', 'error');
             return;
           }
         }
