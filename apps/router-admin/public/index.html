@@ -146,8 +146,30 @@
           <!-- Sección de herramientas de red -->
           <div class="tools-section">
             <h3>Herramientas de Red</h3>
-            <div class="tools-actions">
-              <button type="button" id="ping-test-btn" class="tool-button">Probar Conectividad (Ping)</button>
+            
+            <div class="ping-section">
+              <div class="field">
+                <label for="ping-ip">Dirección IP o Hostname:</label>
+                <input id="ping-ip" type="text" placeholder="192.168.77.4" />
+              </div>
+              
+              <div class="field">
+                <label for="ping-count">Cantidad de pings:</label>
+                <select id="ping-count">
+                  <option value="3">3 pings</option>
+                  <option value="5" selected>5 pings</option>
+                  <option value="10">10 pings</option>
+                </select>
+              </div>
+              
+              <div class="ping-actions">
+                <button type="button" id="execute-ping-btn" class="tool-button">Ejecutar Ping</button>
+              </div>
+              
+              <div id="ping-result" class="ping-result-container" style="display: none;">
+                <h4>Resultado del Ping:</h4>
+                <div id="ping-output" class="ping-output"></div>
+              </div>
             </div>
           </div>
         </section>
@@ -161,41 +183,7 @@
       </div>
     </main>
 
-    <!-- Modal Simple para Ping Test -->
-    <div id="ping-modal" class="simple-modal" style="display: none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>Probar Conectividad</h3>
-          <button class="modal-close" id="ping-modal-close">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="field">
-            <label for="ping-ip">Dirección IP o Hostname:</label>
-            <input id="ping-ip" type="text" placeholder="192.168.77.4" />
-          </div>
-          
-          <div class="field">
-            <label for="ping-count">Cantidad de pings:</label>
-            <select id="ping-count">
-              <option value="3">3 pings</option>
-              <option value="5" selected>5 pings</option>
-              <option value="10">10 pings</option>
-            </select>
-          </div>
-          
-          <div class="modal-actions">
-            <button type="button" id="execute-ping-btn" class="btn-primary">Ejecutar Ping</button>
-            <button type="button" id="cancel-ping-btn" class="btn-secondary">Cancelar</button>
-          </div>
-          
-          <div id="ping-result" class="ping-result-container" style="display: none;">
-            <h4>Resultado del Ping:</h4>
-            <div id="ping-output" class="ping-output"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+
 
     <script src="app.js"></script>
   </body>

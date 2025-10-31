@@ -36,14 +36,10 @@ const deleteLoopbackNumberInput = document.getElementById('delete-loopback-numbe
 const deleteInterfaceDescField = document.getElementById('delete-interface-desc-field');
 const deleteInterfaceNameSelect = document.getElementById('delete-interface-name');
 
-// Elementos del modal de ping
-const pingTestBtn = document.getElementById('ping-test-btn');
-const pingModal = document.getElementById('ping-modal');
-const pingModalClose = document.getElementById('ping-modal-close');
+// Elementos del ping integrado
 const pingIpInput = document.getElementById('ping-ip');
 const pingCountSelect = document.getElementById('ping-count');
 const executePingBtn = document.getElementById('execute-ping-btn');
-const cancelPingBtn = document.getElementById('cancel-ping-btn');
 const pingResult = document.getElementById('ping-result');
 const pingOutput = document.getElementById('ping-output');
 
@@ -82,38 +78,14 @@ function updateCustomDataField() {
   }
 }
 
-// Funciones para el modal de ping
-function openPingModal() {
-  console.log('Abriendo modal de ping...', pingModal);
-  if (pingModal) {
-    // Forzar que el modal sea visible
-    pingModal.style.display = 'flex';
-    pingModal.style.position = 'fixed';
-    pingModal.style.top = '0';
-    pingModal.style.left = '0';
-    pingModal.style.width = '100vw';
-    pingModal.style.height = '100vh';
-    pingModal.style.zIndex = '99999';
-    pingModal.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
-    
-    pingIpInput.value = ipInput.value || '192.168.77.4'; // Pre-llenar con la IP del router
-    pingResult.style.display = 'none';
-    pingOutput.innerHTML = '';
-    console.log('Modal abierto correctamente con estilos forzados');
-    
-    // Agregar clase al body para prevenir scroll
-    document.body.style.overflow = 'hidden';
+// Función para inicializar el ping
+function initializePing() {
+  // Pre-llenar con la IP del router si está conectado
+  if (ipInput.value) {
+    pingIpInput.value = ipInput.value;
   } else {
-    console.error('Error: pingModal no encontrado');
+    pingIpInput.value = '192.168.77.4';
   }
-}
-
-function closePingModal() {
-  pingModal.style.display = 'none';
-  pingResult.style.display = 'none';
-  pingOutput.innerHTML = '';
-  // Restaurar scroll del body
-  document.body.style.overflow = 'auto';
 }
 
 // Función para ejecutar ping
@@ -352,35 +324,13 @@ operationSelect.addEventListener('change', () => {
 // Event listener para el método custom
 customMethodSelect.addEventListener('change', updateCustomDataField);
 
-// Event listeners para el modal de ping
-if (pingTestBtn) {
-  console.log('Agregando event listener al botón de ping');
-  pingTestBtn.addEventListener('click', function(event) {
-    console.log('Click detectado en botón de ping, ejecutando openPingModal');
-    event.preventDefault();
-    event.stopPropagation();
-    openPingModal();
-  });
-} else {
-  console.error('Error: pingTestBtn no encontrado');
+// Event listeners para el ping integrado
+if (executePingBtn) {
+  executePingBtn.addEventListener('click', executePing);
 }
-pingModalClose.addEventListener('click', closePingModal);
-cancelPingBtn.addEventListener('click', closePingModal);
-executePingBtn.addEventListener('click', executePing);
 
-// Cerrar modal al hacer click fuera de él
-pingModal.addEventListener('click', (event) => {
-  if (event.target === pingModal) {
-    closePingModal();
-  }
-});
-
-// Cerrar modal con la tecla Escape
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && pingModal.style.display === 'flex') {
-    closePingModal();
-  }
-});
+// Inicializar el ping cuando se carga la página
+document.addEventListener('DOMContentLoaded', initializePing);
 
 // Ejecutar operación
 executeBtn.addEventListener('click', async () => {
