@@ -15,17 +15,54 @@ const passwordInput = document.getElementById('password');
 const operationSelect = document.getElementById('operation');
 const customEndpointDiv = document.getElementById('custom-endpoint');
 const customEndpointInput = document.getElementById('endpoint');
+const customMethodSelect = document.getElementById('custom-method');
 const executeBtn = document.getElementById('execute-btn');
 const clearBtn = document.getElementById('clear-btn');
 const resultArea = document.getElementById('result-area');
 
-// Radio buttons para método HTTP
-const methodRadios = document.querySelectorAll('input[name="method"]');
+// Campos específicos para operaciones de modificación
+const hostnameField = document.getElementById('hostname-field');
+const newHostnameInput = document.getElementById('new-hostname');
+const interfaceDescField = document.getElementById('interface-desc-field');
+const interfaceNameSelect = document.getElementById('interface-name');
+const interfaceDescInput = document.getElementById('interface-description');
+const loopbackField = document.getElementById('loopback-field');
+const loopbackNumberInput = document.getElementById('loopback-number');
+const loopbackIpInput = document.getElementById('loopback-ip');
+const loopbackMaskSelect = document.getElementById('loopback-mask');
+const loopbackDescInput = document.getElementById('loopback-desc');
+
 const dataField = document.getElementById('data-field');
 const dataTextarea = document.getElementById('data');
 
 // Variables de estado
 let isConnected = false;
+
+// Función para obtener el método HTTP según la operación
+function getHttpMethodForOperation(operation) {
+  switch (operation) {
+    case 'setHostname':
+      return 'PUT';
+    case 'setInterfaceDescription':
+      return 'PATCH';
+    case 'addLoopback':
+      return 'POST';
+    case 'custom':
+      return customMethodSelect.value;
+    default:
+      return 'GET';
+  }
+}
+
+// Función para mostrar/ocultar campo de datos para operaciones custom
+function updateCustomDataField() {
+  const method = customMethodSelect.value;
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    dataField.style.display = 'block';
+  } else {
+    dataField.style.display = 'none';
+  }
+}
 
 // Valores por defecto
 ipInput.value = '192.168.77.4';
@@ -167,26 +204,40 @@ disconnectBtn.addEventListener('click', () => {
   addResult('Desconectado del router', 'info');
 });
 
-// Mostrar/ocultar endpoint personalizado
+// Mostrar/ocultar campos según la operación seleccionada
 operationSelect.addEventListener('change', () => {
-  if (operationSelect.value === 'custom') {
-    customEndpointDiv.style.display = 'block';
-  } else {
-    customEndpointDiv.style.display = 'none';
+  // Ocultar todos los campos específicos
+  customEndpointDiv.style.display = 'none';
+  hostnameField.style.display = 'none';
+  interfaceDescField.style.display = 'none';
+  loopbackField.style.display = 'none';
+  
+  const operation = operationSelect.value;
+  
+  // Mostrar el campo apropiado según la operación
+  switch (operation) {
+    case 'custom':
+      customEndpointDiv.style.display = 'block';
+      // Mostrar campo de datos solo si el método lo requiere
+      updateCustomDataField();
+      break;
+    case 'setHostname':
+      hostnameField.style.display = 'block';
+      break;
+    case 'setInterfaceDescription':
+      interfaceDescField.style.display = 'block';
+      break;
+    case 'addLoopback':
+      loopbackField.style.display = 'block';
+      break;
+    default:
+      // Para operaciones GET, no mostrar campos adicionales
+      break;
   }
 });
 
-// Mostrar/ocultar campo de datos para POST/PUT
-methodRadios.forEach(radio => {
-  radio.addEventListener('change', () => {
-    const method = document.querySelector('input[name="method"]:checked').value;
-    if (method === 'POST' || method === 'PUT') {
-      dataField.style.display = 'block';
-    } else {
-      dataField.style.display = 'none';
-    }
-  });
-});
+// Event listener para el método custom
+customMethodSelect.addEventListener('change', updateCustomDataField);
 
 // Ejecutar operación
 executeBtn.addEventListener('click', async () => {
@@ -205,7 +256,7 @@ executeBtn.addEventListener('click', async () => {
   const port = portInput.value.trim();
   const username = usernameInput.value.trim();
   const password = passwordInput.value;
-  const method = document.querySelector('input[name="method"]:checked').value;
+  const method = getHttpMethodForOperation(operation);
   
   let endpoint = null;
   if (operation === 'custom') {
@@ -217,18 +268,101 @@ executeBtn.addEventListener('click', async () => {
   }
   
   let data = null;
-  if ((method === 'POST' || method === 'PUT') && dataTextarea.value.trim()) {
-    try {
-      data = JSON.parse(dataTextarea.value.trim());
-    } catch (e) {
-      addResult('❌ Error en formato JSON', 'error');
-      return;
+  
+  // Construir payload según la operación específica
+  if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+    switch (operation) {
+      case 'setHostname':
+        const newHostname = newHostnameInput.value.trim();
+        if (!newHostname) {
+          addResult('❌ Introduce el nuevo hostname', 'error');
+          return;
+        }
+        data = {
+          "Cisco-IOS-XE-native:hostname": newHostname
+        };
+        break;
+        
+      case 'setInterfaceDescription':
+        const interfaceName = interfaceNameSelect.value;
+        const interfaceDesc = interfaceDescInput.value.trim();
+        if (!interfaceDesc) {
+          addResult('❌ Introduce la descripción de la interface', 'error');
+          return;
+        }
+        
+        // Con PATCH solo necesitamos enviar lo que queremos cambiar
+        // Pero incluimos el name para que el backend pueda construir el endpoint
+        const interfaceNumber = interfaceName.split('=')[1];
+        data = {
+          "Cisco-IOS-XE-native:GigabitEthernet": {
+            "name": interfaceNumber,
+            "description": interfaceDesc
+          }
+        };
+        break;
+        
+      case 'addLoopback':
+        const loopbackNumber = loopbackNumberInput.value.trim();
+        const loopbackIp = loopbackIpInput.value.trim();
+        const loopbackMask = loopbackMaskSelect.value;
+        const loopbackDesc = loopbackDescInput.value.trim();
+        
+        if (!loopbackNumber || !loopbackIp) {
+          addResult('❌ Introduce el número de loopback y la IP', 'error');
+          return;
+        }
+        
+        const loopbackConfig = {
+          "name": parseInt(loopbackNumber),
+          "ip": {
+            "address": {
+              "primary": {
+                "address": loopbackIp,
+                "mask": loopbackMask
+              }
+            }
+          }
+        };
+        
+        if (loopbackDesc) {
+          loopbackConfig.description = loopbackDesc;
+        }
+        
+        data = {
+          "Cisco-IOS-XE-native:Loopback": [loopbackConfig]
+        };
+        break;
+        
+      case 'custom':
+        // Para custom, usar el textarea JSON
+        if (dataTextarea.value.trim()) {
+          try {
+            data = JSON.parse(dataTextarea.value.trim());
+          } catch (e) {
+            addResult('❌ Error en formato JSON', 'error');
+            return;
+          }
+        }
+        break;
+        
+      default:
+        // Para otras operaciones, usar el textarea JSON si está disponible
+        if (dataTextarea.value.trim()) {
+          try {
+            data = JSON.parse(dataTextarea.value.trim());
+          } catch (e) {
+            addResult('❌ Error en formato JSON', 'error');
+            return;
+          }
+        }
+        break;
     }
   }
   
   executeBtn.disabled = true;
   executeBtn.textContent = 'Ejecutando...';
-  addResult(`�� Ejecutando ${method} ${operation}${endpoint ? ` (${endpoint})` : ''}`, 'info');
+  addResult(`Ejecutando ${method} ${operation}${endpoint ? ` (${endpoint})` : ''}`, 'info');
   
   const result = await executeOperation(operation, ip, port, username, password, method, endpoint, data);
   
@@ -236,7 +370,7 @@ executeBtn.addEventListener('click', async () => {
     addResult('✓ Operación completada', 'success');
     addResult(result.data, 'json');
   } else {
-    addResult(`❌ Error: ${result.error}`, 'error');
+    addResult(`Error: ${result.error}`, 'error');
   }
   
   executeBtn.disabled = false;
@@ -249,5 +383,5 @@ clearBtn.addEventListener('click', () => {
 });
 
 // Inicialización
-console.log('✓ Router RESTCONF Admin cargado');
+console.log('Router RESTCONF Admin cargado');
 updateConnectionState(false);

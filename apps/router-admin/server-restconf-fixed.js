@@ -102,8 +102,33 @@ app.post('/api/router/restconf', async (req, res) => {
         case 'getConfig':
           targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native';
           break;
+        // Operaciones de modificación (PUT/POST)
+        case 'set-hostname':
+        case 'setHostname':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/hostname';
+          method = 'PUT';
+          break;
+        case 'set-interface-description':
+        case 'setInterfaceDescription':
+          // El endpoint específico se construirá más adelante usando el payload
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet';
+          method = 'PATCH';  // Usar PATCH para modificaciones parciales
+          break;
+        case 'add-loopback':
+        case 'addLoopback':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface';
+          method = 'POST';
+          break;
         default:
           throw new Error(`Operación '${operation}' no soportada`);
+      }
+    }
+    
+    // Ajustar endpoint para operaciones específicas
+    if (operation === 'setInterfaceDescription' && payload) {
+      const interfaceName = payload['Cisco-IOS-XE-native:GigabitEthernet']?.name;
+      if (interfaceName) {
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet=${interfaceName}`;
       }
     }
     
@@ -125,8 +150,8 @@ app.post('/api/router/restconf', async (req, res) => {
       }
     };
     
-    // Agregar payload si es POST o PUT
-    if ((method === 'POST' || method === 'PUT') && payload) {
+    // Agregar payload si es POST, PUT o PATCH
+    if ((method === 'POST' || method === 'PUT' || method === 'PATCH') && payload) {
       requestConfig.data = payload;
     }
     
