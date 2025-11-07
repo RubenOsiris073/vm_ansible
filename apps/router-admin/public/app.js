@@ -189,7 +189,11 @@ function addResult(content, type = 'info') {
   }
   
   resultArea.appendChild(resultDiv);
-  resultArea.scrollTop = resultArea.scrollHeight;
+  
+  // Hacer scroll interno del área de resultados al final
+  setTimeout(() => {
+    resultArea.scrollTop = resultArea.scrollHeight;
+  }, 10);
 }
 
 // Función para probar conectividad RESTCONF
