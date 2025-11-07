@@ -1,7 +1,7 @@
 {
-  "name": "router-admin",
+  "name": "router-admin-restconf",
   "version": "1.0.0",
-  "description": "Lightweight web UI for managing router telnet sessions",
+  "description": "RESTCONF web UI for managing Cisco routers",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "express": "4.19.2",
-    "ws": "8.18.0"
+    "axios": "^1.6.0"
   },
   "devDependencies": {
     "nodemon": "3.1.0"

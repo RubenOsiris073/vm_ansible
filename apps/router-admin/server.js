@@ -1,343 +1,305 @@
-const http = require('http');
-const path = require('path');
 const express = require('express');
-const net = require('net');
-const { WebSocketServer } = require('ws');
+const axios = require('axios');
+const https = require('https');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const TELNET_DEFAULT_PORT = 23;
-const CONNECTION_TIMEOUT_MS = 7000;
 
-app.use(express.json({ limit: '32kb' }));
+// Middleware
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-function isValidIp(ip) {
-  return /^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.|$)){4}$/.test(ip);
-}
+// Configurar cliente HTTPS que ignore certificados auto-firmados
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false
+});
 
-function stripTelnetNegotiation(buffer) {
-  const result = [];
-  for (let i = 0; i < buffer.length; i += 1) {
-    const byte = buffer[i];
-    if (byte === 255) {
-      const command = buffer[i + 1];
-      if (command === undefined) {
-        break;
+// Ruta principal - servir la aplicación RESTCONF
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// API para probar conectividad con el router
+app.post('/api/router/test', async (req, res) => {
+  const { ip, port, username, password } = req.body;
+  
+  try {
+    console.log(`Probando conectividad a https://${ip}:${port}/restconf/`);
+    
+    const response = await axios.get(`https://${ip}:${port}/restconf/`, {
+      auth: {
+        username: username,
+        password: password
+      },
+      httpsAgent: httpsAgent,
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/yang-data+json'
       }
-
-      if (command === 255) {
-        result.push(255);
-        i += 1;
-        continue;
-      }
-
-      if (command === 250) {
-        i += 2;
-        while (i < buffer.length) {
-          if (buffer[i] === 255 && buffer[i + 1] === 240) {
-            i += 1;
-            break;
-          }
-          i += 1;
-        }
-        continue;
-      }
-
-      if (command >= 251 && command <= 254) {
-        i += 2;
-        continue;
-      }
-
-      if (command === 240 || command === 241 || command === 242 || command === 243 || command === 244 || command === 245) {
-        i += 1;
-        continue;
-      }
-
-      continue;
-    }
-
-    result.push(byte);
+    });
+    
+    res.json({ 
+      success: true, 
+      message: 'Conectividad exitosa',
+      status: response.status
+    });
+    
+  } catch (error) {
+    console.error('Error de conectividad:', error.message);
+    
+    res.json({ 
+      success: false, 
+      error: error.message,
+      code: error.code || 'UNKNOWN'
+    });
   }
+});
 
-  return Buffer.from(result);
-}
-
-function stripAnsiSequences(text) {
-  return text.replace(/\x1B[@-_][0-?]*[ -\/]*[@-~]/g, '');
-}
-
-function applyBackspaces(text) {
-  const chars = [];
-  for (const char of text) {
-    if (char === '\b') {
-      chars.pop();
+// API para operaciones RESTCONF
+app.post('/api/router/restconf', async (req, res) => {
+  const { operation, router, httpMethod, endpoint, payload } = req.body;
+  
+  try {
+    let targetEndpoint = '';
+    let method = httpMethod || 'GET';
+    
+    // Definir endpoints según la operación
+    if (operation === 'custom') {
+      targetEndpoint = endpoint;
     } else {
-      chars.push(char);
-    }
-  }
-  return chars.join('');
-}
-
-function normalizeTelnetText(rawText) {
-  if (!rawText) {
-    return '';
-  }
-
-  const withoutAnsi = stripAnsiSequences(rawText);
-  const normalizedLineEndings = withoutAnsi.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const strippedControl = normalizedLineEndings.replace(/[\x00-\x07\x0B-\x0C\x0E-\x1A\x1C-\x1F]/g, '');
-  return applyBackspaces(strippedControl);
-}
-
-function parseTelnetChunk(buffer) {
-  const stripped = stripTelnetNegotiation(buffer);
-  const rawText = stripped.toString('utf8');
-  return {
-    text: normalizeTelnetText(rawText),
-    hasPagerPrompt: rawText.includes('--More--')
-  };
-}
-
-app.post('/api/telnet/test', async (req, res) => {
-  const { ip, port, username, password, probeCommand } = req.body || {};
-
-  if (!ip || !isValidIp(ip)) {
-    return res.status(400).json({ ok: false, message: 'IP inválida' });
-  }
-
-  const telnetPort = Number(port) || TELNET_DEFAULT_PORT;
-  if (Number.isNaN(telnetPort) || telnetPort <= 0 || telnetPort > 65535) {
-    return res.status(400).json({ ok: false, message: 'Puerto inválido' });
-  }
-
-  const safeUsername = String(username || '').trim();
-  const safePassword = String(password || '').trim();
-  const safeCommand = String(probeCommand || '').trim();
-
-  const client = new net.Socket();
-  let receivedData = '';
-  let settled = false;
-
-  const cleanup = (status, message) => {
-    if (!settled) {
-      settled = true;
-      client.destroy();
-      res.status(status).json(message);
-    }
-  };
-
-  client.setTimeout(CONNECTION_TIMEOUT_MS, () => {
-    cleanup(504, { ok: false, message: 'Timeout: sin respuesta del router' });
-  });
-
-  client.on('error', (err) => {
-    cleanup(502, { ok: false, message: `Error de conexión: ${err.message}` });
-  });
-
-  client.on('data', (data) => {
-    const { text: sanitizedChunk, hasPagerPrompt } = parseTelnetChunk(data);
-    receivedData += sanitizedChunk;
-
-    if (hasPagerPrompt) {
-      client.write(' ');
-    }
-
-    const lower = receivedData.toLowerCase();
-
-    if (lower.includes('login') || lower.includes('username')) {
-      if (safeUsername) {
-        client.write(`${safeUsername}\r\n`);
+      switch (operation) {
+        case 'get-hostname':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/hostname';
+          break;
+        case 'get-interfaces':
+        case 'getInterfaces':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface';
+          break;
+        case 'get-version':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-device-hardware-oper:device-hardware-oper-data';
+          break;
+        case 'get-routing-table':
+        case 'getRoutingTable':
+          // Usar tabla de ruteo más básica disponible
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/ip/route';
+          break;
+        case 'get-running-config':
+        case 'getConfig':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native';
+          break;
+        case 'get-system-info':
+        case 'getSystemInfo':
+          // Usar información básica del sistema que siempre está disponible
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/version';
+          break;
+        case 'getInterfacesState':
+          targetEndpoint = '/restconf/data/ietf-interfaces:interfaces-state';
+          break;
+        case 'getCdpNeighbors':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-cdp-oper:cdp-neighbor-details';
+          break;
+        case 'getConfig':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native';
+          break;
+        // Operaciones de modificación (PUT/POST)
+        case 'set-hostname':
+        case 'setHostname':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/hostname';
+          method = 'PUT';
+          break;
+        case 'set-interface-description':
+        case 'setInterfaceDescription':
+          // El endpoint específico se construirá más adelante usando el payload
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet';
+          method = 'PATCH';  // Usar PATCH para modificaciones parciales
+          break;
+        case 'add-loopback':
+        case 'addLoopback':
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface';
+          method = 'POST';
+          break;
+        case 'delete-loopback':
+        case 'deleteLoopback':
+          // El endpoint específico se construirá más adelante usando el payload
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/Loopback';
+          method = 'DELETE';
+          break;
+        case 'delete-interface-description':
+        case 'deleteInterfaceDescription':
+          // El endpoint específico se construirá más adelante
+          targetEndpoint = '/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet';
+          method = 'DELETE';
+          break;
+        default:
+          throw new Error(`Operación '${operation}' no soportada`);
       }
     }
-
-    if (lower.includes('password') && safePassword) {
-      client.write(`${safePassword}\r\n`);
+    
+    // Ajustar endpoint para operaciones específicas
+    if (operation === 'setInterfaceDescription' && payload) {
+      const interfaceName = payload['Cisco-IOS-XE-native:GigabitEthernet']?.name;
+      if (interfaceName) {
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet=${interfaceName}`;
+      }
     }
-
-    if (safeCommand && receivedData.includes('>')) {
-      client.write(`${safeCommand}\r\n`);
+    
+    // Para operaciones DELETE, necesitamos información adicional del cuerpo de la petición
+    if (operation === 'deleteLoopback') {
+      // El número de loopback viene en el cuerpo de la petición
+      const loopbackNumber = req.body.loopbackNumber;
+      if (loopbackNumber) {
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/Loopback=${loopbackNumber}`;
+      }
     }
-  });
-
-  client.on('close', () => {
-    if (!settled) {
-      cleanup(200, {
-        ok: true,
-        message: 'Conexión cerrada por el host',
-        output: receivedData.slice(-4000)
-      });
+    
+    if (operation === 'deleteInterfaceDescription') {
+      // El nombre de la interface viene en el cuerpo de la petición
+      const interfaceName = req.body.interfaceName;
+      if (interfaceName) {
+        const interfaceNumber = interfaceName.split('=')[1];
+        targetEndpoint = `/restconf/data/Cisco-IOS-XE-native:native/interface/GigabitEthernet=${interfaceNumber}/description`;
+      }
     }
-  });
+    
+    const url = `https://${router.ip}:${router.port}${targetEndpoint}`;
+    console.log(`Ejecutando ${operation}: ${method} ${url}`);
+    
+    const requestConfig = {
+      method: method,
+      url: url,
+      auth: {
+        username: router.username,
+        password: router.password
+      },
+      httpsAgent: httpsAgent,
+      timeout: 15000,
+      headers: {
+        'Accept': 'application/yang-data+json',
+        'Content-Type': 'application/yang-data+json'
+      }
+    };
+    
+    // Agregar payload si es POST, PUT o PATCH
+    if ((method === 'POST' || method === 'PUT' || method === 'PATCH') && payload) {
+      requestConfig.data = payload;
+    }
+    
+    const response = await axios(requestConfig);
+    
+    res.json({ 
+      success: true, 
+      data: response.data,
+      operation: operation,
+      endpoint: targetEndpoint,
+      method: method
+    });
+    
+  } catch (error) {
+    console.error(`Error en operación ${operation}:`, error.message);
+    
+    res.json({ 
+      success: false, 
+      error: error.message,
+      operation: operation,
+      details: error.response ? error.response.data : null
+    });
+  }
+});
 
-  client.connect(telnetPort, ip, () => {
-    setTimeout(() => {
-      if (!settled) {
-        cleanup(200, {
-          ok: true,
-          message: 'Conexión establecida',
-          output: receivedData.slice(-4000)
+// API para ping de red
+app.post('/api/network/ping', async (req, res) => {
+  const { ip, count = 5 } = req.body;
+  
+  if (!ip) {
+    return res.json({ success: false, error: 'IP address is required' });
+  }
+  
+  try {
+    const { spawn } = require('child_process');
+    
+    // Usar ping con parámetros seguros
+    const pingArgs = ['-c', count.toString(), '-W', '3', ip];
+    const pingProcess = spawn('ping', pingArgs);
+    
+    let output = '';
+    let errorOutput = '';
+    
+    pingProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    pingProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    pingProcess.on('close', (code) => {
+      if (code === 0) {
+        // Parse ping output para estadísticas
+        const lines = output.split('\n');
+        const statsLine = lines.find(line => line.includes('packets transmitted'));
+        const timeLine = lines.find(line => line.includes('min/avg/max'));
+        
+        let stats = {
+          sent: count,
+          received: 0,
+          loss: 100
+        };
+        
+        if (statsLine) {
+          const match = statsLine.match(/(\d+) packets transmitted, (\d+) (?:packets )?received/);
+          if (match) {
+            stats.sent = parseInt(match[1]);
+            stats.received = parseInt(match[2]);
+            stats.loss = Math.round(((stats.sent - stats.received) / stats.sent) * 100);
+          }
+        }
+        
+        if (timeLine) {
+          const timeMatch = timeLine.match(/min\/avg\/max.*?=.*?(\d+\.\d+)/);
+          if (timeMatch) {
+            stats.avgTime = parseFloat(timeMatch[1]);
+          }
+        }
+        
+        res.json({
+          success: true,
+          output: output,
+          stats: stats
+        });
+      } else {
+        res.json({
+          success: false,
+          error: `Ping failed with code ${code}`,
+          output: errorOutput || output
         });
       }
-    }, 1500);
-  });
-});
-
-app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && 'body' in err) {
-    return res.status(400).json({ ok: false, message: 'JSON inválido en la solicitud' });
+    });
+    
+    // Timeout para evitar procesos colgados
+    setTimeout(() => {
+      pingProcess.kill('SIGTERM');
+      res.json({
+        success: false,
+        error: 'Ping timeout after 30 seconds'
+      });
+    }, 30000);
+    
+  } catch (error) {
+    console.error('Error ejecutando ping:', error.message);
+    res.json({
+      success: false,
+      error: error.message
+    });
   }
-  return next(err);
 });
 
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server, path: '/ws/shell' });
-
-wss.on('connection', (ws) => {
-  let telnetClient = null;
-  let connected = false;
-  let credentials = { username: '', password: '' };
-  let usernameSent = false;
-  let passwordSent = false;
-
-  const send = (type, payload = {}) => {
-    if (ws.readyState === ws.OPEN) {
-      ws.send(JSON.stringify({ type, ...payload }));
-    }
-  };
-
-  const closeTelnet = (reason, { emitClosed = true } = {}) => {
-    if (telnetClient) {
-      telnetClient.removeAllListeners();
-      telnetClient.destroy();
-      telnetClient = null;
-    }
-    connected = false;
-    usernameSent = false;
-    passwordSent = false;
-    credentials = { username: '', password: '' };
-
-    if (reason) {
-      send('status', { message: reason });
-    }
-    if (emitClosed) {
-      send('closed');
-    }
-  };
-
-  ws.on('message', (rawMessage) => {
-    let message;
-    try {
-      message = JSON.parse(rawMessage.toString());
-    } catch (error) {
-      send('error', { message: 'Mensaje WebSocket inválido' });
-      return;
-    }
-
-    if (message.type === 'connect') {
-      if (!message.ip || !isValidIp(message.ip)) {
-        send('error', { message: 'IP inválida' });
-        return;
-      }
-
-      if (telnetClient) {
-        closeTelnet(undefined, { emitClosed: false });
-      }
-
-      credentials = {
-        username: String(message.username || '').trim(),
-        password: String(message.password || '').trim()
-      };
-      telnetClient = new net.Socket();
-      telnetClient.setKeepAlive(true, 30000);
-      telnetClient.setTimeout(0);
-
-      telnetClient.on('data', (chunk) => {
-        const { text: sanitized, hasPagerPrompt } = parseTelnetChunk(chunk);
-        const normalized = sanitized.toLowerCase();
-
-        if (sanitized) {
-          send('output', { data: sanitized });
-        }
-
-        if (hasPagerPrompt && connected) {
-          telnetClient.write(' ');
-        }
-
-        if (!usernameSent && credentials.username && (normalized.includes('login') || normalized.includes('username'))) {
-          telnetClient.write(`${credentials.username}\r\n`);
-          usernameSent = true;
-          send('status', { message: 'Usuario enviado' });
-        }
-
-        if (!passwordSent && credentials.password && normalized.includes('password')) {
-          telnetClient.write(`${credentials.password}\r\n`);
-          passwordSent = true;
-          send('status', { message: 'Contraseña enviada' });
-        }
-      });
-
-      telnetClient.on('error', (err) => {
-        send('error', { message: `Error de conexión: ${err.message}` });
-        closeTelnet();
-      });
-
-      telnetClient.on('close', () => {
-        closeTelnet('Sesión Telnet finalizada');
-      });
-
-      telnetClient.on('connect', () => {
-        connected = true;
-        send('status', { message: `Sesión abierta con ${message.ip}:23` });
-        send('ready');
-      });
-
-      telnetClient.connect(TELNET_DEFAULT_PORT, message.ip);
-      send('status', { message: `Conectando a ${message.ip}:23...` });
-      return;
-    }
-
-    if (message.type === 'command') {
-      if (!telnetClient || !connected) {
-        send('error', { message: 'No hay una sesión activa' });
-        return;
-      }
-
-      const command = String(message.command || '').trim();
-      if (!command) {
-        return;
-      }
-
-      telnetClient.write(`${command}\r\n`);
-      return;
-    }
-
-    if (message.type === 'control') {
-      if (!telnetClient || !connected) {
-        return;
-      }
-
-      const payload = typeof message.data === 'string' ? message.data : '';
-      if (!payload) {
-        return;
-      }
-
-      telnetClient.write(payload);
-      return;
-    }
-
-    if (message.type === 'disconnect') {
-      closeTelnet('Sesión cerrada por el usuario');
-      return;
-    }
-  });
-
-  ws.on('close', () => {
-    closeTelnet();
-  });
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', service: 'Router RESTCONF Admin' });
 });
 
-server.listen(PORT, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Router admin UI escuchando en http://0.0.0.0:${PORT}`);
+// Iniciar servidor
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Escuchando en http://0.0.0.0:${PORT}`);
 });
