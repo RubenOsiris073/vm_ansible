@@ -222,29 +222,58 @@ button:disabled {
   transform: none;
 }
 
-button[type="submit"],
-#execute-btn {
-  background: linear-gradient(135deg, #0ea5e9, #6366f1);
+/* Tema: Grises y azules sutiles */
+button[type="submit"] {
+  background: #3b82f6;
   color: white;
-  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.35);
+}
+
+button[type="submit"]:hover {
+  background: #2563eb;
+}
+
+#execute-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+#execute-btn:hover {
+  background: #2563eb;
 }
 
 button.secondary,
 #clear-btn {
-  background: rgba(148, 163, 184, 0.2);
-  color: #cbd5f5;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 16px 30px rgba(14, 165, 233, 0.25);
+  background: #1f2937;
+  color: #d1d5db;
+  border: 1px solid #374151;
 }
 
 button.secondary:hover,
 #clear-btn:hover {
-  box-shadow: none;
-  background: rgba(148, 163, 184, 0.35);
+  background: #374151;
+  color: #f3f4f6;
+}
+
+.tool-button {
+  background: #6366f1;
+  color: white;
+}
+
+.tool-button:hover {
+  background: #4f46e5;
+}
+
+#execute-ping-btn {
+  background: #8b5cf6;
+  color: white;
+}
+
+#execute-ping-btn:hover {
+  background: #7c3aed;
+}
+
+button:hover {
+  transform: translateY(-1px);
 }
 
 /* Estado de conexión */
