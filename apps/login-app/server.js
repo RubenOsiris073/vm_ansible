@@ -82,10 +82,10 @@ app.post('/api/login', async (req, res) => {
     }
     
     // Verificar permisos según el rol
-    if (user.role !== 'admin') {
+    if (user.role !== 'admin' && user.role !== 'tecnico') {
       return res.status(403).json({ 
         success: false, 
-        message: 'Acceso denegado. Solo usuarios administradores pueden acceder al sistema de gestión.' 
+        message: 'Acceso denegado. Solo usuarios administradores y técnicos pueden acceder al sistema de gestión.' 
       });
     }
     
@@ -98,7 +98,7 @@ app.post('/api/login', async (req, res) => {
         email: user.email,
         role: user.role
       },
-      redirect: 'https://routerlab.local'
+      redirect: `https://routerlab.local?user=${encodeURIComponent(JSON.stringify({id: user.id, email: user.email, role: user.role}))}`
     });
     
   } catch (error) {

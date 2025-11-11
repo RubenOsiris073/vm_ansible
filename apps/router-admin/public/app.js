@@ -49,6 +49,110 @@ const dataTextarea = document.getElementById('data');
 
 // Variables de estado
 let isConnected = false;
+let currentUser = null;
+let userPermissions = null;
+
+// Función para obtener información del usuario desde la URL
+function getUserFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userParam = urlParams.get('user');
+  
+  if (userParam) {
+    try {
+      const userData = JSON.parse(decodeURIComponent(userParam));
+      console.log('Usuario logueado:', userData);
+      return userData;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return null;
+    }
+  }
+  return null;
+}
+
+// Función para obtener permisos del usuario
+async function loadUserPermissions() {
+  if (!currentUser) return null;
+  
+  try {
+    const response = await fetch(`/api/user/permissions?user=${encodeURIComponent(JSON.stringify(currentUser))}`);
+    const result = await response.json();
+    
+    if (result.success) {
+      userPermissions = result.permissions;
+      updateUIForRole(currentUser.role);
+      console.log('Permisos cargados:', userPermissions);
+      return userPermissions;
+    } else {
+      console.error('Error obteniendo permisos:', result.message);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error cargando permisos:', error);
+    return null;
+  }
+}
+
+// Función para actualizar la UI según el rol
+function updateUIForRole(role) {
+  // Mostrar información del usuario en el header
+  const headerContent = document.querySelector('.header-content');
+  if (headerContent && currentUser) {
+    const userInfo = document.createElement('div');
+    userInfo.className = 'user-info';
+    userInfo.innerHTML = `
+      <span class="user-email">${currentUser.email}</span>
+      <span class="user-role role-${role}">${role.toUpperCase()}</span>
+    `;
+    
+    // Insertar antes del botón de logout
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn && !headerContent.querySelector('.user-info')) {
+      headerContent.insertBefore(userInfo, logoutBtn);
+    }
+  }
+  
+  // Filtrar opciones del dropdown según permisos
+  filterOperationsByRole(role);
+}
+
+// Función para filtrar operaciones del dropdown
+function filterOperationsByRole(role) {
+  const operationSelect = document.getElementById('operation');
+  if (!operationSelect) return;
+  
+  const allOptions = Array.from(operationSelect.querySelectorAll('option'));
+  
+  allOptions.forEach(option => {
+    const value = option.value;
+    let shouldShow = true;
+    
+    if (role === 'tecnico') {
+      // Solo permitir operaciones GET para técnicos
+      const readOnlyOperations = [
+        '', 'getConfig', 'getSystemInfo', 'getInterfaces', 
+        'getInterfacesState', 'getRoutingTable', 'getCdpNeighbors'
+      ];
+      shouldShow = readOnlyOperations.includes(value);
+    }
+    
+    // Ocultar/mostrar opciones
+    option.style.display = shouldShow ? '' : 'none';
+    if (!shouldShow && option.selected) {
+      operationSelect.selectedIndex = 0; // Reset to default
+    }
+  });
+  
+  // Agregar mensaje informativo para técnicos
+  if (role === 'tecnico' && !operationSelect.querySelector('.tech-info')) {
+    const infoOption = document.createElement('option');
+    infoOption.className = 'tech-info';
+    infoOption.disabled = true;
+    infoOption.textContent = '--- Solo operaciones de consulta (GET) ---';
+    infoOption.style.color = '#888';
+    operationSelect.appendChild(infoOption);
+  }
+}
 
 // Función para obtener el método HTTP según la operación
 function getHttpMethodForOperation(operation) {
@@ -220,6 +324,7 @@ async function executeOperation(operation, ip, port, username, password, method 
       operation,
       router: { ip, port, username, password },
       httpMethod: method,
+      userRole: currentUser ? currentUser.role : null,
       ...extraData
     };
     
@@ -519,3 +624,15 @@ logoutBtn.addEventListener('click', () => {
 // Inicialización
 console.log('Router RESTCONF Admin cargado');
 updateConnectionState(false);
+
+// Inicializar usuario y permisos
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = getUserFromURL();
+  if (currentUser) {
+    await loadUserPermissions();
+  } else {
+    // Si no hay usuario, redirigir al login
+    console.log('No hay usuario logueado, redirigiendo al login...');
+    window.location.href = 'https://login.routerlab.local';
+  }
+});

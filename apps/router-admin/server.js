@@ -20,6 +20,78 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// API para validar permisos del usuario
+app.get('/api/user/permissions', (req, res) => {
+  // En un caso real, esto vendría de un token JWT o sesión
+  // Por ahora, extraer de query params
+  const userDataParam = req.query.user;
+  
+  if (!userDataParam) {
+    return res.status(400).json({
+      success: false,
+      message: 'Información de usuario requerida'
+    });
+  }
+  
+  try {
+    const userData = JSON.parse(decodeURIComponent(userDataParam));
+    
+    // Definir permisos según rol
+    let permissions = {
+      canRead: false,
+      canWrite: false,
+      canDelete: false,
+      allowedOperations: []
+    };
+    
+    switch (userData.role) {
+      case 'admin':
+        permissions = {
+          canRead: true,
+          canWrite: true, 
+          canDelete: true,
+          allowedOperations: [
+            'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+            'getRoutingTable', 'getCdpNeighbors', 'setHostname', 'setInterfaceDescription',
+            'addLoopback', 'deleteLoopback', 'deleteInterfaceDescription', 'custom'
+          ]
+        };
+        break;
+      case 'tecnico':
+        permissions = {
+          canRead: true,
+          canWrite: false,
+          canDelete: false,
+          allowedOperations: [
+            'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+            'getRoutingTable', 'getCdpNeighbors'
+          ]
+        };
+        break;
+      default:
+        // user role - sin acceso
+        permissions = {
+          canRead: false,
+          canWrite: false,
+          canDelete: false,
+          allowedOperations: []
+        };
+    }
+    
+    res.json({
+      success: true,
+      user: userData,
+      permissions: permissions
+    });
+    
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: 'Datos de usuario inválidos'
+    });
+  }
+});
+
 // API para probar conectividad con el router
 app.post('/api/router/test', async (req, res) => {
   const { ip, port, username, password } = req.body;
@@ -58,7 +130,37 @@ app.post('/api/router/test', async (req, res) => {
 
 // API para operaciones RESTCONF
 app.post('/api/router/restconf', async (req, res) => {
-  const { operation, router, httpMethod, endpoint, payload } = req.body;
+  const { operation, router, httpMethod, endpoint, payload, userRole } = req.body;
+  
+  // Validar permisos según el rol del usuario
+  if (userRole) {
+    const isWriteOperation = ['PUT', 'POST', 'PATCH', 'DELETE'].includes(httpMethod || 'GET');
+    const isDeleteOperation = (httpMethod || 'GET') === 'DELETE';
+    
+    if (userRole === 'tecnico') {
+      if (isWriteOperation || isDeleteOperation) {
+        return res.status(403).json({
+          success: false,
+          error: 'Acceso denegado. Los técnicos solo pueden realizar operaciones de consulta (GET).'
+        });
+      }
+    }
+    
+    // Validar operaciones específicas para técnicos
+    if (userRole === 'tecnico') {
+      const allowedOperations = [
+        'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+        'getRoutingTable', 'getCdpNeighbors', 'get-hostname', 'get-interfaces'
+      ];
+      
+      if (!allowedOperations.includes(operation)) {
+        return res.status(403).json({
+          success: false,
+          error: 'Operación no permitida para técnicos. Solo se permiten consultas (GET).'
+        });
+      }
+    }
+  }
   
   try {
     let targetEndpoint = '';
