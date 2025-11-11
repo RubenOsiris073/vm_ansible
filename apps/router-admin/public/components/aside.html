@@ -1,0 +1,29 @@
+<!-- Aside - Conexión al Router -->
+<aside class="sidebar">
+  <section class="connection-card">
+    <h2>Conexión al Router</h2>
+    <form id="connection-form">
+      <div class="field">
+        <label for="ip">IP del router</label>
+        <input id="ip" name="ip" type="text" required placeholder="192.168.77.4" />
+      </div>
+      <div class="field">
+        <label for="port">Puerto RESTCONF</label>
+        <input id="port" name="port" type="number" placeholder="443" value="443" />
+      </div>
+      <div class="field">
+        <label for="username">Usuario</label>
+        <input id="username" name="username" type="text" required placeholder="admin" />
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input id="password" name="password" type="password" required />
+      </div>
+      <div class="actions">
+        <button type="submit" id="connect-btn">Conectar</button>
+        <button type="button" id="disconnect-btn" class="secondary" disabled>Desconectar</button>
+      </div>
+    </form>
+    <div id="connection-status" class="status-box"></div>
+  </section>
+</aside>

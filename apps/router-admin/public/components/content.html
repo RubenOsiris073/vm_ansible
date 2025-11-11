@@ -1,0 +1,102 @@
+<!-- Content - Operaciones RESTCONF -->
+<main class="main-content">
+  <section class="operations-card">
+    <h2>Operaciones RESTCONF</h2>
+
+    <div class="operation-selector">
+      <label for="operation">Operación:</label>
+      <select id="operation">
+        <option value="">-- Selecciona una operación --</option>
+        <optgroup label="Consultas (GET)">
+          <option value="getConfig">GET - Obtener Configuración Completa</option>
+          <option value="getSystemInfo">GET - Información del Sistema</option>
+          <option value="getInterfaces">GET - Configuración de Interfaces</option>
+          <option value="getInterfacesState">GET - Estado de Interfaces</option>
+          <option value="getRoutingTable">GET - Tabla de Routing</option>
+          <option value="getCdpNeighbors">GET - Vecinos CDP</option>
+        </optgroup>
+        <optgroup label="Modificaciones">
+          <option value="setHostname">PUT - Cambiar Hostname</option>
+          <option value="setInterfaceDescription">PATCH - Cambiar Descripción Interface</option>
+          <option value="addLoopback">POST - Agregar Interface Loopback</option>
+          <option value="deleteLoopback">DELETE - Eliminar Interface Loopback</option>
+          <option value="deleteInterfaceDescription">DELETE - Eliminar Descripción de Interface</option>
+        </optgroup>
+        <optgroup label="Personalizado">
+          <option value="custom">Endpoint Personalizado (GET/PUT/PATCH/POST/DELETE)</option>
+        </optgroup>
+      </select>
+    </div>
+
+    <div id="custom-endpoint" class="field" style="display: none;">
+      <label for="endpoint">Endpoint personalizado:</label>
+      <input id="endpoint" type="text" placeholder="/data/Cisco-IOS-XE-native:native/interface" />
+      <label for="custom-method">Método HTTP:</label>
+      <select id="custom-method">
+        <option value="GET">GET</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="POST">POST</option>
+        <option value="DELETE">DELETE</option>
+      </select>
+    </div>
+
+    <!-- Campos específicos para operaciones de modificación -->
+    <div id="hostname-field" class="field" style="display: none;">
+      <label for="new-hostname">Nuevo Hostname:</label>
+      <input id="new-hostname" type="text" placeholder="ROUTER-NUEVO-NOMBRE" maxlength="63" />
+      <small>Máximo 63 caracteres, sin espacios ni caracteres especiales</small>
+    </div>
+
+    <div id="interface-desc-field" class="field" style="display: none;">
+      <label for="interface-name">Interface:</label>
+      <select id="interface-name">
+        <option value="GigabitEthernet=1">GigabitEthernet1</option>
+        <option value="GigabitEthernet=2">GigabitEthernet2</option>
+      </select>
+      <label for="interface-description">Nueva Descripción:</label>
+      <input id="interface-description" type="text" placeholder="Descripción de la interface" maxlength="240" />
+    </div>
+
+    <div id="loopback-field" class="field" style="display: none;">
+      <label for="loopback-number">Número de Loopback:</label>
+      <input id="loopback-number" type="number" placeholder="100" min="0" max="2147483647" />
+      <label for="loopback-ip">IP Address:</label>
+      <input id="loopback-ip" type="text" placeholder="10.10.10.1" pattern="^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$" />
+      <label for="loopback-mask">Subnet Mask:</label>
+      <select id="loopback-mask">
+        <option value="255.255.255.255">/32 - Host (255.255.255.255)</option>
+        <option value="255.255.255.0">/24 - (255.255.255.0)</option>
+        <option value="255.255.0.0">/16 - (255.255.0.0)</option>
+        <option value="255.0.0.0">/8 - (255.0.0.0)</option>
+      </select>
+      <label for="loopback-desc">Descripción (opcional):</label>
+      <input id="loopback-desc" type="text" placeholder="Nueva interface loopback" />
+    </div>
+
+    <div id="delete-loopback-field" class="field" style="display: none;">
+      <label for="delete-loopback-number">Número de Loopback a eliminar:</label>
+      <input id="delete-loopback-number" type="number" placeholder="100" min="0" max="2147483647" />
+      <small>Esta operación eliminará completamente la interface loopback especificada</small>
+    </div>
+
+    <div id="delete-interface-desc-field" class="field" style="display: none;">
+      <label for="delete-interface-name">Interface:</label>
+      <select id="delete-interface-name">
+        <option value="GigabitEthernet=1">GigabitEthernet1</option>
+        <option value="GigabitEthernet=2">GigabitEthernet2</option>
+      </select>
+      <small>Esta operación eliminará solo la descripción de la interface (no afecta IP ni conectividad)</small>
+    </div>
+
+    <div id="data-field" class="field" style="display: none;">
+      <label for="data">Datos JSON:</label>
+      <textarea id="data" placeholder='{"example": "data"}'></textarea>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="execute-btn" disabled>Ejecutar Operación</button>
+      <button type="button" id="clear-btn">Limpiar Resultado</button>
+    </div>
+  </section>
+</main>

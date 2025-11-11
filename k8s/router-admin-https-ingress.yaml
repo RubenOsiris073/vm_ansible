@@ -1,0 +1,28 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: router-admin-https-ingress
+  namespace: default
+  annotations:
+    # Traefik configuración para HTTPS
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    # Redirección automática de HTTP a HTTPS
+    traefik.ingress.kubernetes.io/redirect-entry-point: websecure
+    traefik.ingress.kubernetes.io/redirect-permanent: "true"
+spec:
+  tls:
+  - hosts:
+    - routerlab.local
+    secretName: router-admin-tls-secret
+  rules:
+  - host: routerlab.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: router-admin-service
+            port:
+              number: 80
