@@ -1,0 +1,32 @@
+---
+# Configuración offline con NAT habilitado para internet
+# Mantiene la red interna para demos pero permite acceso a internet
+
+# Configuración de red interna con NAT funcional
+router_admin_network_interface: ens3  # interfaz para red de laboratorio
+router_admin_primary_dhcp4: false  # IP estática en lab
+router_admin_primary_dhcp6: false
+router_admin_primary_optional: false
+router_admin_secondary_ip: 192.168.77.10
+router_admin_secondary_prefix: 24
+
+# DNS externo para acceso a internet
+router_admin_secondary_dns:
+  - 1.1.1.1
+  - 8.8.8.8
+
+# NAT habilitado como ruta por defecto (métrica baja)
+router_admin_nat_interface: ens4
+router_admin_nat_dhcp4: true
+router_admin_nat_dhcp6: false
+router_admin_nat_optional: true
+# Métrica baja para que NAT sea la ruta por defecto
+router_admin_nat_metric: 100
+
+# Configuración Router Admin
+router_admin_hostname: routerlab.local
+router_admin_namespace: router-admin
+
+# Modo offline para paquetes pero con internet disponible
+offline_mode: false  # Permitir acceso a internet
+skip_package_updates: false  # Permitir actualizaciones

@@ -51,7 +51,7 @@ qemu-system-x86_64 \
   -drive file="$SEED_ISO",if=virtio,format=raw \
   -netdev tap,id=vmnic0,ifname="$TAP_NAME",script=no,downscript=no \
   -device virtio-net-pci,netdev=vmnic0,mac=52:54:00:aa:bb:01 \
-  -netdev user,id=vmnic1,hostfwd=tcp::2222-:22,restrict=y \
+  -netdev user,id=vmnic1,hostfwd=tcp::2222-:22 \
   -device virtio-net-pci,netdev=vmnic1,mac=52:54:00:aa:bb:02 \
   -display none
 
@@ -62,6 +62,14 @@ echo "Esperando conectividad SSH..."
 for i in {1..30}; do
     if ssh -i /home/os/.ssh/id_ed25519 -o ConnectTimeout=2 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 2222 ubuntu@localhost 'echo "VM ready"' >/dev/null 2>&1; then
         echo "✓ SSH disponible"
+
+# Aplicar configuración offline con NAT
+echo "Aplicando configuración de red con NAT..."
+if ansible-playbook -i /home/os/Documents/vm_ansible/inventory/offline_demo_nat.ini /home/os/Documents/vm_ansible/playbooks/provision_offline_demo.yml --tags networking >/dev/null 2>&1; then
+    echo "✓ Configuración de red aplicada"
+else
+    echo "⚠ Problema aplicando configuración de red"
+fi
         break
     fi
     echo "  Intento $i/30..."
@@ -80,6 +88,7 @@ echo ""
 echo "=== Estado del laboratorio ==="
 echo "• VM Ubuntu: ejecutándose (SSH: puerto 2222)"
 echo "• Red interna: 192.168.77.0/24"
+echo "• Internet: disponible vía NAT (ens4)"
 echo "• Puente host: br-ext (192.168.77.1)"
 echo "• VM IP: 192.168.77.10"
 echo "• Router Admin UI: https://routerlab.local (requiere /etc/hosts)"
@@ -89,7 +98,7 @@ echo "• Conectar SSH: ssh -i ~/.ssh/id_ed25519 -p 2222 ubuntu@localhost"
 echo "• Ver servicios VM: ssh -p 2222 ubuntu@localhost 'kubectl get pods -A'"
 echo "• Detener VM: pkill -f ubuntu-ansible"
 echo ""
-echo "¡Demostración lista para presentar sin conectividad externa!"
+echo "¡Demostración lista - Red interna + Acceso a Internet!"
 echo ""
 echo "Próximos pasos:"
 echo "1. Abrir navegador en: https://routerlab.local"
