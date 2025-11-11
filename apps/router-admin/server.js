@@ -57,6 +57,18 @@ app.get('/api/user/permissions', (req, res) => {
           ]
         };
         break;
+      case 'supervisor':
+        permissions = {
+          canRead: true,
+          canWrite: true,
+          canDelete: true,
+          allowedOperations: [
+            'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+            'getRoutingTable', 'getCdpNeighbors', 'setHostname', 'setInterfaceDescription',
+            'addLoopback', 'deleteLoopback', 'deleteInterfaceDescription', 'custom'
+          ]
+        };
+        break;
       case 'tecnico':
         permissions = {
           canRead: true,
@@ -65,6 +77,27 @@ app.get('/api/user/permissions', (req, res) => {
           allowedOperations: [
             'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
             'getRoutingTable', 'getCdpNeighbors'
+          ]
+        };
+        break;
+      case 'operador':
+        permissions = {
+          canRead: true,
+          canWrite: true,
+          canDelete: false,
+          allowedOperations: [
+            'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+            'getRoutingTable', 'getCdpNeighbors', 'setInterfaceDescription'
+          ]
+        };
+        break;
+      case 'readonly':
+        permissions = {
+          canRead: true,
+          canWrite: false,
+          canDelete: false,
+          allowedOperations: [
+            'getSystemInfo', 'getInterfaces', 'getInterfacesState'
           ]
         };
         break;
@@ -137,28 +170,45 @@ app.post('/api/router/restconf', async (req, res) => {
     const isWriteOperation = ['PUT', 'POST', 'PATCH', 'DELETE'].includes(httpMethod || 'GET');
     const isDeleteOperation = (httpMethod || 'GET') === 'DELETE';
     
-    if (userRole === 'tecnico') {
+    // Validaciones específicas por rol
+    if (userRole === 'tecnico' || userRole === 'readonly') {
       if (isWriteOperation || isDeleteOperation) {
         return res.status(403).json({
           success: false,
-          error: 'Acceso denegado. Los técnicos solo pueden realizar operaciones de consulta (GET).'
+          error: `Acceso denegado. Los ${userRole === 'tecnico' ? 'técnicos' : 'usuarios de solo lectura'} solo pueden realizar operaciones de consulta (GET).`
         });
       }
     }
     
-    // Validar operaciones específicas para técnicos
-    if (userRole === 'tecnico') {
-      const allowedOperations = [
-        'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
-        'getRoutingTable', 'getCdpNeighbors', 'get-hostname', 'get-interfaces'
-      ];
-      
-      if (!allowedOperations.includes(operation)) {
+    if (userRole === 'operador') {
+      if (isDeleteOperation) {
         return res.status(403).json({
           success: false,
-          error: 'Operación no permitida para técnicos. Solo se permiten consultas (GET).'
+          error: 'Acceso denegado. Los operadores no pueden realizar operaciones DELETE.'
         });
       }
+    }
+    
+    // Validar operaciones específicas
+    const roleOperations = {
+      'tecnico': [
+        'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+        'getRoutingTable', 'getCdpNeighbors', 'get-hostname', 'get-interfaces'
+      ],
+      'operador': [
+        'getConfig', 'getSystemInfo', 'getInterfaces', 'getInterfacesState',
+        'getRoutingTable', 'getCdpNeighbors', 'setInterfaceDescription', 'get-hostname', 'get-interfaces'
+      ],
+      'readonly': [
+        'getSystemInfo', 'getInterfaces', 'getInterfacesState', 'get-interfaces'
+      ]
+    };
+    
+    if (roleOperations[userRole] && !roleOperations[userRole].includes(operation)) {
+      return res.status(403).json({
+        success: false,
+        error: `Operación no permitida para el rol ${userRole}.`
+      });
     }
   }
   

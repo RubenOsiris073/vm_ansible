@@ -71,8 +71,23 @@ body {
   color: white;
 }
 
+.role-supervisor {
+  background: #8e44ad;
+  color: white;
+}
+
 .role-tecnico {
   background: #f39c12;
+  color: white;
+}
+
+.role-operador {
+  background: #27ae60;
+  color: white;
+}
+
+.role-readonly {
+  background: #95a5a6;
   color: white;
 }
 

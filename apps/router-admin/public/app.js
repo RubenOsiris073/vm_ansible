@@ -127,13 +127,25 @@ function filterOperationsByRole(role) {
     const value = option.value;
     let shouldShow = true;
     
-    if (role === 'tecnico') {
-      // Solo permitir operaciones GET para técnicos
-      const readOnlyOperations = [
+    // Definir operaciones permitidas por rol
+    const rolePermissions = {
+      'admin': '*', // Todas las operaciones
+      'supervisor': '*', // Todas las operaciones
+      'tecnico': [
         '', 'getConfig', 'getSystemInfo', 'getInterfaces', 
         'getInterfacesState', 'getRoutingTable', 'getCdpNeighbors'
-      ];
-      shouldShow = readOnlyOperations.includes(value);
+      ],
+      'operador': [
+        '', 'getConfig', 'getSystemInfo', 'getInterfaces', 
+        'getInterfacesState', 'getRoutingTable', 'getCdpNeighbors', 'setInterfaceDescription'
+      ],
+      'readonly': [
+        '', 'getSystemInfo', 'getInterfaces', 'getInterfacesState'
+      ]
+    };
+    
+    if (rolePermissions[role] !== '*') {
+      shouldShow = rolePermissions[role].includes(value);
     }
     
     // Ocultar/mostrar opciones
@@ -143,12 +155,21 @@ function filterOperationsByRole(role) {
     }
   });
   
-  // Agregar mensaje informativo para técnicos
-  if (role === 'tecnico' && !operationSelect.querySelector('.tech-info')) {
+  // Agregar mensaje informativo según el rol
+  const existingInfo = operationSelect.querySelector('.role-info');
+  if (existingInfo) existingInfo.remove();
+  
+  const roleMessages = {
+    'tecnico': '--- Solo operaciones de consulta (GET) ---',
+    'operador': '--- Consultas + modificar descripciones ---', 
+    'readonly': '--- Solo información básica ---'
+  };
+  
+  if (roleMessages[role]) {
     const infoOption = document.createElement('option');
-    infoOption.className = 'tech-info';
+    infoOption.className = 'role-info';
     infoOption.disabled = true;
-    infoOption.textContent = '--- Solo operaciones de consulta (GET) ---';
+    infoOption.textContent = roleMessages[role];
     infoOption.style.color = '#888';
     operationSelect.appendChild(infoOption);
   }

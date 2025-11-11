@@ -286,3 +286,20 @@ body {
     flex-direction: column;
   }
 }
+
+.back-to-login {
+    text-align: center;
+    margin-top: 1.5rem;
+}
+
+.back-to-login a {
+    color: #007acc;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s ease;
+}
+
+.back-to-login a:hover {
+    color: #005c99;
+    text-decoration: underline;
+}

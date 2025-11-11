@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Usuarios - RouterLab</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .admin-register-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .register-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            margin: 0 5px;
+            transition: background 0.3s ease;
+        }
+
+        .step-dot.active {
+            background: #007acc;
+        }
+
+        .role-option {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .role-option:hover {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.1);
+        }
+
+        .role-option.selected {
+            border-color: #007acc;
+            background: rgba(0, 122, 204, 0.2);
+        }
+
+        .role-title {
+            font-weight: bold;
+            color: #007acc;
+            margin-bottom: 0.5rem;
+        }
+
+        .role-description {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .permissions-list {
+            margin-top: 0.5rem;
+            padding-left: 1rem;
+        }
+
+        .permissions-list li {
+            font-size: 0.8rem;
+            color: #aaa;
+            margin: 0.2rem 0;
+        }
+
+        .back-to-login {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .back-to-login a {
+            color: #007acc;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+
+        .back-to-login a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            background: rgba(46, 204, 113, 0.2);
+            border: 1px solid #2ecc71;
+            color: #2ecc71;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        .error-message {
+            background: rgba(231, 76, 60, 0.2);
+            border: 1px solid #e74c3c;
+            color: #e74c3c;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- Video de fondo -->
+    <div class="video-background">
+        <video autoplay muted loop id="bg-video">
+            <source src="images/background.mp4" type="video/mp4">
+            <!-- Fallback para navegadores que no soportan el video -->
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+
+    <div class="admin-register-container">
+        <div class="register-card">
+            <div class="step-indicator">
+                <div class="step-dot active" id="dot-1"></div>
+                <div class="step-dot" id="dot-2"></div>
+                <div class="step-dot" id="dot-3"></div>
+            </div>
+
+            <!-- Paso 1: Autenticación de Admin -->
+            <div class="step active" id="step-1">
+                <h2>Registro de Usuarios</h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: #ccc;">
+                    Se requiere autenticación de administrador
+                </p>
+                
+                <form id="admin-auth-form">
+                    <div class="input-group">
+                        <label for="admin-email">Email de Administrador</label>
+                        <input type="email" id="admin-email" name="email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="admin-password">Contraseña de Administrador</label>
+                        <input type="password" id="admin-password" name="password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">AUTENTICAR</button>
+                </form>
+            </div>
+
+            <!-- Paso 2: Selección de Rol -->
+            <div class="step" id="step-2">
+                <h2>Seleccionar Rol de Usuario</h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: #ccc;">
+                    Elige el nivel de acceso para el nuevo usuario
+                </p>
+
+                <div id="role-options">
+                    <div class="role-option" data-role="admin">
+                        <div class="role-title">👨‍💼 Administrador</div>
+                        <div class="role-description">Acceso completo al sistema</div>
+                        <ul class="permissions-list">
+                            <li>✅ Todas las operaciones RESTCONF</li>
+                            <li>✅ Crear/eliminar usuarios</li>
+                            <li>✅ Modificar configuraciones</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-option" data-role="supervisor">
+                        <div class="role-title">👨‍🏫 Supervisor</div>
+                        <div class="role-description">Operaciones completas sin gestión de usuarios</div>
+                        <ul class="permissions-list">
+                            <li>✅ Todas las operaciones RESTCONF</li>
+                            <li>❌ Gestión de usuarios</li>
+                            <li>✅ Modificar configuraciones</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-option" data-role="tecnico">
+                        <div class="role-title">🔧 Técnico</div>
+                        <div class="role-description">Solo operaciones de consulta y diagnóstico</div>
+                        <ul class="permissions-list">
+                            <li>✅ Solo operaciones GET</li>
+                            <li>✅ Ver configuraciones</li>
+                            <li>❌ Modificar configuraciones</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-option" data-role="operador">
+                        <div class="role-title">⚡ Operador</div>
+                        <div class="role-description">Operaciones básicas de red</div>
+                        <ul class="permissions-list">
+                            <li>✅ Operaciones GET</li>
+                            <li>✅ Cambiar descripciones</li>
+                            <li>❌ Crear/eliminar interfaces</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-option" data-role="readonly">
+                        <div class="role-title">👀 Solo Lectura</div>
+                        <div class="role-description">Solo visualización de información</div>
+                        <ul class="permissions-list">
+                            <li>✅ Solo operaciones GET básicas</li>
+                            <li>❌ Cualquier modificación</li>
+                            <li>❌ Acceso a información sensible</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="prevStep()">ATRÁS</button>
+                    <button type="button" class="btn btn-primary" id="next-to-step3" disabled onclick="nextStep()">SIGUIENTE</button>
+                </div>
+            </div>
+
+            <!-- Paso 3: Datos del Usuario -->
+            <div class="step" id="step-3">
+                <h2>Datos del Nuevo Usuario</h2>
+                <p style="text-align: center; margin-bottom: 2rem; color: #ccc;">
+                    Información del usuario a registrar
+                </p>
+
+                <form id="user-register-form">
+                    <div class="selected-role" id="selected-role-display"></div>
+                    
+                    <div class="input-group">
+                        <label for="user-email">Email del Usuario</label>
+                        <input type="email" id="user-email" name="email" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="user-password">Contraseña</label>
+                        <input type="password" id="user-password" name="password" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="user-password-confirm">Confirmar Contraseña</label>
+                        <input type="password" id="user-password-confirm" name="password_confirm" required>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                        <button type="button" class="btn btn-secondary" onclick="prevStep()">ATRÁS</button>
+                        <button type="submit" class="btn btn-primary">REGISTRAR USUARIO</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="back-to-login">
+                <a href="/">← Volver al Login</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/admin-register.js"></script>
+</body>
+</html>

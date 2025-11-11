@@ -82,10 +82,11 @@ app.post('/api/login', async (req, res) => {
     }
     
     // Verificar permisos según el rol
-    if (user.role !== 'admin' && user.role !== 'tecnico') {
+    const allowedRoles = ['admin', 'supervisor', 'tecnico', 'operador'];
+    if (!allowedRoles.includes(user.role)) {
       return res.status(403).json({ 
         success: false, 
-        message: 'Acceso denegado. Solo usuarios administradores y técnicos pueden acceder al sistema de gestión.' 
+        message: 'Acceso denegado. Solo usuarios con permisos pueden acceder al sistema de gestión.' 
       });
     }
     
@@ -171,6 +172,83 @@ app.post('/api/register', async (req, res) => {
     
   } catch (error) {
     console.error('Error en registro:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error interno del servidor' 
+    });
+  }
+});
+
+// Ruta para registro de administradores
+app.get('/admin-register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin-register.html'));
+});
+
+// API para registro de usuarios por administradores
+app.post('/api/admin/register', async (req, res) => {
+  const { adminUser, newUser } = req.body;
+  
+  if (!adminUser || !newUser) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Información de administrador y nuevo usuario requerida' 
+    });
+  }
+  
+  // Verificar que quien registra sea admin
+  if (adminUser.role !== 'admin') {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'Solo administradores pueden registrar usuarios' 
+    });
+  }
+  
+  const { email, password, role } = newUser;
+  
+  if (!email || !password || !role) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Email, contraseña y rol son requeridos' 
+    });
+  }
+  
+  // Validar rol
+  const validRoles = ['admin', 'supervisor', 'tecnico', 'operador', 'readonly'];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Rol no válido' 
+    });
+  }
+  
+  try {
+    // Verificar si el email ya existe
+    const existingUserQuery = 'SELECT email FROM users WHERE email = $1';
+    const existingUser = await pool.query(existingUserQuery, [email]);
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El email ya está registrado' 
+      });
+    }
+    
+    // Hash de la contraseña
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Insertar nuevo usuario
+    const insertUserQuery = 'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id, email, role';
+    const newUserResult = await pool.query(insertUserQuery, [email, hashedPassword, role]);
+    
+    res.json({ 
+      success: true, 
+      message: `Usuario registrado exitosamente con rol ${role}`,
+      user: newUserResult.rows[0]
+    });
+    
+  } catch (error) {
+    console.error('Error en registro por admin:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Error interno del servidor' 
