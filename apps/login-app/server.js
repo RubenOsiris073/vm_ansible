@@ -1,9 +1,30 @@
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
+const { Pool } = require('pg');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+
+// Configuración de la base de datos PostgreSQL
+const pool = new Pool({
+  user: 'admin',
+  host: 'postgres-service',
+  database: 'routerlab',
+  password: 'RouterLabAdmin2025',
+  port: 5432,
+});
+
+// Probar conexión a la base de datos al iniciar
+pool.connect()
+  .then(client => {
+    console.log('✓ Conectado a PostgreSQL exitosamente');
+    client.release();
+  })
+  .catch(err => {
+    console.error('✗ Error conectando a PostgreSQL:', err.message);
+  });
 
 // Middleware
 app.use(cors());
@@ -24,39 +45,72 @@ app.get('/register', (req, res) => {
 });
 
 // API endpoints para autenticación
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   
-  // Aquí implementarías la lógica de autenticación
   console.log('Login attempt:', { email, password: '***' });
   
-  // Simulación de validación
-  if (email && password) {
-    if (email === 'admin@routerlab.local' && password === 'admin123') {
-      res.json({ 
-        success: true, 
-        message: 'Login exitoso',
-        user: {
-          email: email,
-          role: 'admin'
-        },
-        redirect: 'https://routerlab.local' // Redirigir al router-admin
-      });
-    } else {
-      res.status(401).json({ 
-        success: false, 
-        message: 'Credenciales incorrectas' 
-      });
-    }
-  } else {
-    res.status(400).json({ 
+  if (!email || !password) {
+    return res.status(400).json({ 
       success: false, 
       message: 'Email y contraseña son requeridos' 
     });
   }
+  
+  try {
+    // Buscar usuario en la base de datos
+    const userQuery = 'SELECT id, email, password, role FROM users WHERE email = $1';
+    const userResult = await pool.query(userQuery, [email]);
+    
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Credenciales incorrectas' 
+      });
+    }
+    
+    const user = userResult.rows[0];
+    
+    // Verificar contraseña
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    
+    if (!isPasswordValid) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Credenciales incorrectas' 
+      });
+    }
+    
+    // Verificar permisos según el rol
+    if (user.role !== 'admin') {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Acceso denegado. Solo usuarios administradores pueden acceder al sistema de gestión.' 
+      });
+    }
+    
+    // Login exitoso
+    res.json({ 
+      success: true, 
+      message: 'Login exitoso',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      },
+      redirect: 'https://routerlab.local'
+    });
+    
+  } catch (error) {
+    console.error('Error en login:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Error interno del servidor' 
+    });
+  }
 });
 
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
   const { nombre, apellido_paterno, apellido_materno, email, password, captcha, role, superior_code } = req.body;
   
   // Validar captcha
@@ -67,7 +121,6 @@ app.post('/api/register', (req, res) => {
     });
   }
   
-  // Aquí implementarías la lógica de registro
   console.log('Register attempt:', { 
     nombre, 
     apellido_paterno, 
@@ -78,23 +131,49 @@ app.post('/api/register', (req, res) => {
     password: '***' 
   });
   
-  // Simulación de registro
-  if (nombre && apellido_paterno && email && password && role) {
+  if (!nombre || !apellido_paterno || !email || !password || !role) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Todos los campos requeridos deben ser completados' 
+    });
+  }
+  
+  try {
+    // Verificar si el email ya existe
+    const existingUserQuery = 'SELECT email FROM users WHERE email = $1';
+    const existingUser = await pool.query(existingUserQuery, [email]);
+    
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'El email ya está registrado' 
+      });
+    }
+    
+    // Hash de la contraseña
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    
+    // Insertar nuevo usuario (solo se permiten roles 'user' por registro normal)
+    const userRole = role === 'admin' ? 'user' : 'user'; // Por seguridad, forzar 'user'
+    const insertUserQuery = 'INSERT INTO users (email, password, role) VALUES ($1, $2, $3) RETURNING id, email, role';
+    const newUser = await pool.query(insertUserQuery, [email, hashedPassword, userRole]);
+    
     res.json({ 
       success: true, 
       message: 'Usuario registrado exitosamente',
       user: {
-        nombre: nombre,
-        apellido_paterno: apellido_paterno,
-        apellido_materno: apellido_materno,
-        email: email,
-        role: role
+        id: newUser.rows[0].id,
+        email: newUser.rows[0].email,
+        role: newUser.rows[0].role
       }
     });
-  } else {
-    res.status(400).json({ 
+    
+  } catch (error) {
+    console.error('Error en registro:', error);
+    res.status(500).json({ 
       success: false, 
-      message: 'Todos los campos requeridos deben ser completados' 
+      message: 'Error interno del servidor' 
     });
   }
 });

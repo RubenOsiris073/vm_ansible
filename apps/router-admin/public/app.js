@@ -5,6 +5,7 @@ console.log('Iniciando Router RESTCONF Admin...');
 const connectionForm = document.getElementById('connection-form');
 const connectBtn = document.getElementById('connect-btn');
 const disconnectBtn = document.getElementById('disconnect-btn');
+const logoutBtn = document.getElementById('logout-btn');
 const connectionStatus = document.getElementById('connection-status');
 
 const ipInput = document.getElementById('ip');
@@ -507,6 +508,12 @@ executeBtn.addEventListener('click', async () => {
 // Limpiar resultados
 clearBtn.addEventListener('click', () => {
   resultArea.innerHTML = '<p class="placeholder">Conecta al router y ejecuta una operación para ver los resultados aquí.</p>';
+});
+
+// Logout - redirigir al login
+logoutBtn.addEventListener('click', () => {
+  // Redirigir al login usando el ingress
+  window.location.href = 'https://login.routerlab.local';
 });
 
 // Inicialización
