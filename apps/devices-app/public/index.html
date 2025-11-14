@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventario de Equipos - RouterLab</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* === ESTILOS ESPECÍFICOS PARA INVENTARIO === */
+      .devices-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 1rem 0;
+      }
+
+      .devices-table th,
+      .devices-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .devices-table th {
+        background: rgba(0, 0, 0, 0.3);
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .devices-table tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      /* === INDICADORES DE ESTADO === */
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      .status-online { background: #2ecc71; }
+      .status-offline { background: #e74c3c; }
+      .status-unknown { background: #95a5a6; }
+
+      /* === BOTONES DE ACCIÓN === */
+      .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .btn-test { 
+        background: #f39c12; 
+        color: white; 
+      }
+
+      .btn-test:hover { 
+        background: #e67e22; 
+      }
+
+      .btn-delete { 
+        background: #e74c3c; 
+        color: white; 
+      }
+
+      .btn-delete:hover { 
+        background: #c0392b; 
+      }
+
+      /* === OTROS ESTILOS === */
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #95a5a6;
+      }
+
+      .device-count {
+        font-size: 0.9rem;
+        color: #95a5a6;
+        margin-bottom: 1rem;
+      }
+
+      /* === MODAL === */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+      }
+
+      .modal-content {
+        background: #1e293b;
+        margin: 10% auto;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        color: #e2e8f0;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <!-- === LAYOUT PRINCIPAL === -->
+    <div class="app-layout">
+      
+      <!-- === COMPONENTE: HEADER CON NAVEGACIÓN === -->
+      <header class="main-header">
+        <div class="header-content">
+          <div class="user-info">
+            <!-- Info del usuario será insertada aquí por JavaScript -->
+          </div>
+          <nav class="header-nav">
+            <button type="button" id="router-admin-btn" class="btn btn-secondary">Router Admin</button>
+            <button type="button" id="logout-btn" class="logout-btn">Cerrar Sesión</button>
+          </nav>
+        </div>
+      </header>
+
+      <!-- === CONTENEDOR PRINCIPAL === -->
+      <div class="main-container">
+        
+        <!-- === COMPONENTE: SIDEBAR - GESTIÓN DE DISPOSITIVOS === -->
+        <aside class="sidebar">
+          <section class="connection-card">
+            <h2>Agregar Dispositivo</h2>
+            <form id="add-device-form">
+              <div class="field">
+                <label for="device-name">Nombre del Dispositivo</label>
+                <input id="device-name" name="name" type="text" required placeholder="Router-Core-01" />
+              </div>
+              <div class="field">
+                <label for="device-ip">Dirección IP</label>
+                <input id="device-ip" name="ip" type="text" required placeholder="192.168.77.4" />
+              </div>
+              <div class="field">
+                <label for="device-port">Puerto RESTCONF</label>
+                <input id="device-port" name="port" type="number" placeholder="443" value="443" />
+              </div>
+              <div class="field">
+                <label for="device-username">Usuario</label>
+                <input id="device-username" name="username" type="text" required placeholder="admin" />
+              </div>
+              <div class="field">
+                <label for="device-password">Contraseña</label>
+                <input id="device-password" name="password" type="password" required />
+              </div>
+              <div class="field">
+                <label for="device-description">Descripción (opcional)</label>
+                <textarea id="device-description" name="description" placeholder="Descripción del dispositivo"></textarea>
+              </div>
+              <div class="actions">
+                <button type="submit" id="add-device-btn">Agregar Dispositivo</button>
+                <button type="button" id="refresh-list-btn" class="secondary">Actualizar Lista</button>
+              </div>
+            </form>
+            <div id="add-status" class="status-box"></div>
+          </section>
+        </aside>
+
+        <!-- === COMPONENTE: CONTENIDO PRINCIPAL - LISTA DE DISPOSITIVOS === -->
+        <main class="main-content" style="flex: 2;">
+          <section class="operations-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <h2>Dispositivos RESTCONF</h2>
+              <div style="display: flex; gap: 0.5rem;">
+                <button id="refresh-status-btn" class="btn btn-info">Actualizar Estados</button>
+                <button id="test-all-btn" class="btn btn-secondary">Probar Todos</button>
+              </div>
+            </div>
+
+            <div id="device-count" class="device-count">
+              Cargando dispositivos...
+            </div>
+
+            <div id="devices-container">
+              <!-- Tabla de dispositivos será insertada aquí por JavaScript -->
+            </div>
+          </section>
+        </main>
+
+        <!-- === COMPONENTE: LOG DE ACTIVIDADES === -->
+        <section class="results-section">
+          <div class="terminal-card">
+            <h2>Log de Actividades</h2>
+            <div id="activity-log" class="result-display">
+              <p class="placeholder">Las actividades del inventario aparecerán aquí.</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+
+    <!-- === COMPONENTE: MODAL DE CONFIRMACIÓN === -->
+    <div id="deleteModal" class="modal">
+      <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3>Confirmar Eliminación</h3>
+        <p>¿Estás seguro de que quieres eliminar este dispositivo?</p>
+        <div id="device-to-delete"></div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+          <button id="confirm-delete" class="btn btn-primary">Eliminar</button>
+          <button id="cancel-delete" class="btn btn-secondary">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- === JAVASCRIPT PRINCIPAL === -->
+    <script src="app.js"></script>
+  </body>
+</html>

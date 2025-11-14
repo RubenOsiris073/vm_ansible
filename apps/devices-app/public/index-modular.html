@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Inventario de Equipos - RouterLab</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      /* Estilos específicos para inventario */
+      .devices-table {
+        width: 100%;
+        border-collapse: collapse;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 8px;
+        overflow: hidden;
+        margin: 1rem 0;
+      }
+
+      .devices-table th,
+      .devices-table td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .devices-table th {
+        background: rgba(0, 0, 0, 0.3);
+        font-weight: bold;
+        color: #3498db;
+      }
+
+      .devices-table tr:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+      }
+
+      .status-online { background: #2ecc71; }
+      .status-offline { background: #e74c3c; }
+      .status-unknown { background: #95a5a6; }
+
+      .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .btn-small {
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+
+      .btn-test { 
+        background: #f39c12; 
+        color: white; 
+      }
+
+      .btn-test:hover { 
+        background: #e67e22; 
+      }
+
+      .btn-delete { 
+        background: #e74c3c; 
+        color: white; 
+      }
+
+      .btn-delete:hover { 
+        background: #c0392b; 
+      }
+
+      .add-device-form {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 3rem;
+        color: #95a5a6;
+      }
+
+      .device-count {
+        font-size: 0.9rem;
+        color: #95a5a6;
+        margin-bottom: 1rem;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 2000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+      }
+
+      .modal-content {
+        background: #1e293b;
+        margin: 10% auto;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        color: #e2e8f0;
+      }
+
+      .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover { color: #fff; }
+    </style>
+  </head>
+  <body>
+    <!-- Layout principal -->
+    <div class="app-layout">
+      
+      <!-- Header Component -->
+      <div id="header-component"></div>
+
+      <!-- Contenedor principal -->
+      <div class="main-container">
+        
+        <!-- Sidebar Component -->
+        <div id="sidebar-component"></div>
+
+        <!-- Main Content Component -->
+        <div id="main-content-component"></div>
+
+        <!-- Activity Log Component -->
+        <div id="activity-log-component"></div>
+
+      </div>
+    </div>
+
+    <!-- Modal Component -->
+    <div id="modal-component"></div>
+
+    <script>
+      // Función para cargar componentes
+      async function loadComponent(componentPath, containerId) {
+        try {
+          const response = await fetch(componentPath);
+          if (!response.ok) {
+            throw new Error(`Error loading ${componentPath}: ${response.status}`);
+          }
+          const html = await response.text();
+          document.getElementById(containerId).innerHTML = html;
+        } catch (error) {
+          console.error(`Error loading component ${componentPath}:`, error);
+        }
+      }
+
+      // Cargar todos los componentes al inicio
+      async function loadAllComponents() {
+        const components = [
+          { path: 'components/header.html', container: 'header-component' },
+          { path: 'components/sidebar.html', container: 'sidebar-component' },
+          { path: 'components/main-content.html', container: 'main-content-component' },
+          { path: 'components/activity-log.html', container: 'activity-log-component' },
+          { path: 'components/modal.html', container: 'modal-component' }
+        ];
+
+        // Cargar todos los componentes en paralelo
+        await Promise.all(
+          components.map(comp => loadComponent(comp.path, comp.container))
+        );
+
+        console.log('Todos los componentes cargados exitosamente');
+        
+        // Inicializar la aplicación después de cargar componentes
+        initializeApp();
+      }
+
+      // Función placeholder para inicializar la app
+      function initializeApp() {
+        // El script app.js se cargará después de que los componentes estén listos
+        const script = document.createElement('script');
+        script.src = 'app.js';
+        document.body.appendChild(script);
+      }
+
+      // Cargar componentes cuando el DOM esté listo
+      document.addEventListener('DOMContentLoaded', loadAllComponents);
+    </script>
+  </body>
+</html>

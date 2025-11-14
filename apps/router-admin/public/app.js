@@ -6,6 +6,7 @@ const connectionForm = document.getElementById('connection-form');
 const connectBtn = document.getElementById('connect-btn');
 const disconnectBtn = document.getElementById('disconnect-btn');
 const logoutBtn = document.getElementById('logout-btn');
+const inventoryBtn = document.getElementById('inventory-btn');
 const connectionStatus = document.getElementById('connection-status');
 
 const ipInput = document.getElementById('ip');
@@ -640,6 +641,13 @@ clearBtn.addEventListener('click', () => {
 logoutBtn.addEventListener('click', () => {
   // Redirigir al login usando el ingress
   window.location.href = 'https://login.routerlab.local';
+});
+
+// Botón de inventario - redirigir a devices-app
+inventoryBtn.addEventListener('click', () => {
+  // Pasar información del usuario a devices-app
+  const userParam = currentUser ? `?user=${encodeURIComponent(JSON.stringify(currentUser))}` : '';
+  window.location.href = `https://devices.routerlab.local${userParam}`;
 });
 
 // Inicialización

@@ -1,0 +1,37 @@
+<!-- Sidebar - Agregar Dispositivo -->
+<aside class="sidebar">
+  <section class="connection-card">
+    <h2>Agregar Dispositivo</h2>
+    <form id="add-device-form">
+      <div class="field">
+        <label for="device-name">Nombre del Dispositivo</label>
+        <input id="device-name" name="name" type="text" required placeholder="Router-Core-01" />
+      </div>
+      <div class="field">
+        <label for="device-ip">Dirección IP</label>
+        <input id="device-ip" name="ip" type="text" required placeholder="192.168.77.4" />
+      </div>
+      <div class="field">
+        <label for="device-port">Puerto RESTCONF</label>
+        <input id="device-port" name="port" type="number" placeholder="443" value="443" />
+      </div>
+      <div class="field">
+        <label for="device-username">Usuario</label>
+        <input id="device-username" name="username" type="text" required placeholder="admin" />
+      </div>
+      <div class="field">
+        <label for="device-password">Contraseña</label>
+        <input id="device-password" name="password" type="password" required />
+      </div>
+      <div class="field">
+        <label for="device-description">Descripción (opcional)</label>
+        <textarea id="device-description" name="description" placeholder="Descripción del dispositivo"></textarea>
+      </div>
+      <div class="actions">
+        <button type="submit" id="add-device-btn">Agregar Dispositivo</button>
+        <button type="button" id="refresh-list-btn" class="secondary">Actualizar Lista</button>
+      </div>
+    </form>
+    <div id="add-status" class="status-box"></div>
+  </section>
+</aside>

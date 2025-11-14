@@ -1,0 +1,96 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devices-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devices-app
+  template:
+    metadata:
+      labels:
+        app: devices-app
+    spec:
+      containers:
+      - name: devices-app
+        image: devices-app:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 3002
+        env:
+        - name: DB_HOST
+          value: "postgres-service"
+        - name: DB_PORT
+          value: "5432"
+        - name: DB_NAME
+          value: "routerlab"
+        - name: DB_USER
+          value: "routerlab_user"
+        - name: DB_PASSWORD
+          value: "routerlab_pass"
+        - name: PORT
+          value: "3002"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 3002
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devices-app-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: devices-app
+  ports:
+  - port: 3002
+    targetPort: 3002
+    protocol: TCP
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devices-app-ingress
+  namespace: default
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+    cert-manager.io/cluster-issuer: "selfsigned-issuer"
+spec:
+  tls:
+  - hosts:
+    - devices.routerlab.local
+    secretName: devices-app-tls
+  rules:
+  - host: devices.routerlab.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: devices-app-service
+            port:
+              number: 3002

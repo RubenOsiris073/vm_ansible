@@ -2,7 +2,6 @@
 # Script para demostración offline - VM completamente autónoma
 set -euo pipefail
 
-echo "=== Iniciando demostración offline de Router Lab ==="
 
 # Variables
 VM_IMAGE="/home/os/Documents/vm_ansible/noble-server-cloudimg-amd64.img"

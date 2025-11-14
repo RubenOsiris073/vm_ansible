@@ -306,6 +306,17 @@ button.secondary:hover,
   color: #f3f4f6;
 }
 
+.btn-info {
+  background: #06b6d4;
+  color: white;
+  border: 1px solid #0891b2;
+}
+
+.btn-info:hover {
+  background: #0891b2;
+  color: white;
+}
+
 .tool-button {
   background: #6366f1;
   color: white;
