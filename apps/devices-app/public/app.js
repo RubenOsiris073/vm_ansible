@@ -341,7 +341,7 @@ async function testDevice(deviceId) {
       testButton.innerHTML = 'Probando...';
     }
     
-    const response = await fetch(`/api/devices/${deviceId}/test`, {
+    const response = await fetch(`/api/devices/${deviceId}/test?user=${encodeURIComponent(JSON.stringify(currentUser))}`, {
       method: 'POST',
       credentials: 'same-origin'
     });

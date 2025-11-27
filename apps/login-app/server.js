@@ -91,7 +91,7 @@ app.post('/api/login', async (req, res) => {
     }
     
     // Login exitoso
-    res.json({ 
+    res.json({
       success: true, 
       message: 'Login exitoso',
       user: {
@@ -99,10 +99,8 @@ app.post('/api/login', async (req, res) => {
         email: user.email,
         role: user.role
       },
-      redirect: `https://routerlab.local?user=${encodeURIComponent(JSON.stringify({id: user.id, email: user.email, role: user.role}))}`
-    });
-    
-  } catch (error) {
+      redirect: `https://devices.routerlab.local?user=${encodeURIComponent(JSON.stringify({id: user.id, email: user.email, role: user.role}))}`
+    });  } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ 
       success: false, 

@@ -1,0 +1,52 @@
+! Configuración RESTCONF para router GNS3
+! IP: 192.168.77.4
+! Usuario: admin / Password: admin
+
+enable
+configure terminal
+
+! Configurar usuario administrativo
+username admin privilege 15 secret admin
+username admin autocommand enable
+
+! Habilitar servicios HTTP/HTTPS
+ip http server
+ip http secure-server
+ip http authentication local
+
+! Configurar RESTCONF
+restconf
+
+! Configurar interfaz de gestión
+interface GigabitEthernet0/0
+ description Interfaz de gestion RESTCONF
+ ip address 192.168.77.4 255.255.255.0
+ no shutdown
+ exit
+
+! Configurar líneas de acceso
+line con 0
+ login local
+ exec-timeout 0 0
+ privilege level 15
+ exit
+
+line vty 0 4
+ login local
+ transport input all
+ privilege level 15
+ exit
+
+! Habilitar acceso SSH (opcional)
+ip domain-name routerlab.local
+crypto key generate rsa modulus 1024
+
+! Guardar configuración
+end
+write memory
+
+! Verificar configuración
+show running-config | include restconf
+show running-config | include http
+show ip interface brief
+show users

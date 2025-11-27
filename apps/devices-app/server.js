@@ -38,6 +38,9 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Servir archivos estáticos desde public
+app.use(express.static(path.join(__dirname, 'public')));
+
 // === API ENDPOINTS ANTES DE ARCHIVOS ESTÁTICOS ===
 // Endpoints de autenticación
 app.get('/auth/verify', async (req, res) => {
@@ -244,10 +247,28 @@ app.post('/api/devices', async (req, res) => {
 // API para probar conectividad de un dispositivo
 app.post('/api/devices/:id/test', async (req, res) => {
   const deviceId = req.params.id;
-  const { userRole } = req.body;
+  const userDataParam = req.query.user;
   
+  // Verificar autenticación
+  if (!userDataParam) {
+    return res.status(401).json({
+      success: false,
+      message: 'Usuario no autenticado'
+    });
+  }
+
+  let userData;
+  try {
+    userData = JSON.parse(decodeURIComponent(userDataParam));
+  } catch (error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Datos de usuario inválidos'
+    });
+  }
+
   // Validar permisos
-  if (!userRole) {
+  if (!userData.role) {
     return res.status(403).json({
       success: false,
       message: 'Rol de usuario requerido'
@@ -579,10 +600,6 @@ function startDeviceMonitoring() {
   
   console.log('📊 Monitoreo configurado: verificación cada 2 minutos');
 }
-
-// === MIDDLEWARE DE ARCHIVOS ESTÁTICOS AL FINAL ===
-// Servir archivos estáticos desde public
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Ruta principal - servir index.html
 app.get('/', (req, res) => {
