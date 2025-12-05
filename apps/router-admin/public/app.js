@@ -205,15 +205,6 @@ function updateCustomDataField() {
   }
 }
 
-// Función para inicializar el ping
-function initializePing() {
-  // Pre-llenar con la IP del router si está conectado
-  if (ipInput.value) {
-    pingIpInput.value = ipInput.value;
-  } else {
-    pingIpInput.value = '192.168.77.4';
-  }
-}
 
 // Función para ejecutar ping
 async function executePing() {

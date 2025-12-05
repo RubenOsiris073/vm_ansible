@@ -96,14 +96,11 @@ function checkAddPermissions() {
           <h2>Información</h2>
           <p>Su rol (${currentUser.role}) permite consultar y probar dispositivos.</p>
           <p>Para agregar o eliminar dispositivos, contacte a un administrador.</p>
-          <div class="actions">
-            <button type="button" id="refresh-list-btn" class="secondary">Actualizar Lista</button>
-          </div>
         </section>
       `;
       
       // Re-setup del botón refresh
-      document.getElementById('refresh-list-btn')?.addEventListener('click', loadDevices);
+
     }
   }
 }
@@ -122,11 +119,9 @@ function setupEventListeners() {
   // Formulario agregar dispositivo
   document.getElementById('add-device-form')?.addEventListener('submit', addDevice);
   
-  // Botón actualizar lista
-  document.getElementById('refresh-list-btn')?.addEventListener('click', loadDevices);
+
   
-  // Botón probar todos
-  document.getElementById('test-all-btn')?.addEventListener('click', testAllDevices);
+
   
   // Botón actualizar estados
   document.getElementById('refresh-status-btn')?.addEventListener('click', refreshDeviceStatus);
@@ -203,7 +198,6 @@ function renderDevicesTable() {
           <th>Puerto</th>
           <th>Usuario</th>
           <th>Descripción</th>
-          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -222,18 +216,6 @@ function renderDevicesTable() {
         <td>${device.port}</td>
         <td>${device.username}</td>
         <td>${device.description || '-'}</td>
-        <td>
-          <div class="action-buttons">
-            <button class="btn-small btn-test" onclick="testDevice(${device.id})">
-              Probar
-            </button>
-            ${canDelete ? `
-            <button class="btn-small btn-delete" onclick="showDeleteModal(${device.id})">
-              Eliminar
-            </button>
-            ` : ''}
-          </div>
-        </td>
       </tr>
     `;
   });
@@ -387,43 +369,6 @@ function updateDeviceStatus(deviceId, status) {
               title="${getStatusText(status)}"></span>
         ${getStatusText(status)}
       `;
-    }
-  }
-}
-
-// Probar todos los dispositivos
-async function testAllDevices() {
-  if (!devices || devices.length === 0) {
-    addToLog('No hay dispositivos para probar');
-    return;
-  }
-  
-  addToLog(`Iniciando pruebas masivas de ${devices.length} dispositivo(s)...`);
-  
-  const testButton = document.getElementById('test-all-btn');
-  if (testButton) {
-    testButton.disabled = true;
-    testButton.innerHTML = 'Probando todos...';
-  }
-  
-  try {
-    // Probar todos los dispositivos en paralelo
-    const testPromises = devices.map(device => 
-      testDevice(device.id).catch(error => {
-        console.error(`Error probando ${device.name}:`, error);
-      })
-    );
-    
-    await Promise.all(testPromises);
-    addToLog('Pruebas masivas completadas');
-    
-  } catch (error) {
-    console.error('Error en pruebas masivas:', error);
-    addToLog(`Error en pruebas masivas: ${error.message}`);
-  } finally {
-    if (testButton) {
-      testButton.disabled = false;
-      testButton.innerHTML = 'Probar Todos';
     }
   }
 }
