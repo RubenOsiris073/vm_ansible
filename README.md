@@ -31,6 +31,20 @@ Usuario: admin@routerlab.local
 Contraseña: admin123
 ```
 
+## Generación de Reporte DOCX
+
+Para generar un reporte completo del proyecto en formato DOCX:
+
+```bash
+# Instalar dependencias (primera vez)
+pip3 install python-docx markdown
+
+# Generar reporte
+python3 scripts/generate_report.py
+```
+
+El reporte incluye toda la documentación, estructura del proyecto y guías de uso. Ver [GENERADOR_REPORTE.md](GENERADOR_REPORTE.md) para más detalles.
+
 ## Inicio Rápido
 
 ### Modo Desarrollo (Con modificaciones)
