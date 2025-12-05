@@ -1,0 +1,33 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"traefik.ingress.kubernetes.io/router.entrypoints":"websecure","traefik.ingress.kubernetes.io/router.tls":"true"},"name":"grafana-https-ingress","namespace":"kube-system"},"spec":{"rules":[{"host":"grafana.routerlab.local","http":{"paths":[{"backend":{"service":{"name":"grafana-service","port":{"number":3000}}},"path":"/","pathType":"Prefix"}]}}],"tls":[{"hosts":["grafana.routerlab.local"],"secretName":"grafana-tls"}]}}
+    traefik.ingress.kubernetes.io/router.entrypoints: websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
+  creationTimestamp: "2025-12-01T21:20:30Z"
+  generation: 1
+  name: grafana-https-ingress
+  namespace: kube-system
+  resourceVersion: "78376"
+  uid: d6a1463f-9a46-475d-aea0-b14654f3e849
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: grafana.routerlab.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: grafana-service
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - grafana.routerlab.local
+    secretName: grafana-tls
+status:
+  loadBalancer: {}

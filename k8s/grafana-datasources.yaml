@@ -1,0 +1,21 @@
+apiVersion: v1
+data:
+  prometheus.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-service:9090
+      access: proxy
+      isDefault: true
+      editable: true
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"prometheus.yaml":"apiVersion: 1\ndatasources:\n- name: Prometheus\n  type: prometheus\n  url: http://prometheus-service:9090\n  access: proxy\n  isDefault: true\n  editable: true\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"grafana-datasources","namespace":"kube-system"}}
+  creationTimestamp: "2025-12-01T20:08:18Z"
+  name: grafana-datasources
+  namespace: kube-system
+  resourceVersion: "76103"
+  uid: f49eaac7-19fb-49a8-8ff8-d9dfd644af82

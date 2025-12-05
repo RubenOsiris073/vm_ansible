@@ -1,0 +1,124 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "10"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"name":"grafana","namespace":"kube-system"},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"grafana"}},"template":{"metadata":{"labels":{"app":"grafana"}},"spec":{"containers":[{"env":[{"name":"GF_SECURITY_ADMIN_USER","value":"admin"},{"name":"GF_SECURITY_ADMIN_PASSWORD","value":"admin"},{"name":"GF_USERS_ALLOW_SIGN_UP","value":"false"},{"name":"GF_SERVER_ROOT_URL","value":"http://grafana.routerlab.local"}],"image":"grafana/grafana:latest","name":"grafana","ports":[{"containerPort":3000}],"volumeMounts":[{"mountPath":"/var/lib/grafana","name":"grafana-storage"}]}],"volumes":[{"emptyDir":{},"name":"grafana-storage"}]}}}}
+  creationTimestamp: "2025-12-01T19:58:32Z"
+  generation: 10
+  name: grafana
+  namespace: kube-system
+  resourceVersion: "81197"
+  uid: 71d8046b-0fcd-425a-855b-3e8c6a4b8846
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: grafana
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-12-01T21:16:45Z"
+      creationTimestamp: null
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+        - name: GF_USERS_ALLOW_SIGN_UP
+          value: "false"
+        - name: GF_SERVER_PROTOCOL
+          value: https
+        - name: GF_SERVER_CERT_FILE
+          value: /etc/ssl/certs/grafana.crt
+        - name: GF_SERVER_CERT_KEY
+          value: /etc/ssl/certs/grafana.key
+        - name: GF_SERVER_ROOT_URL
+          value: https://grafana.routerlab.local
+        image: grafana/grafana:latest
+        imagePullPolicy: IfNotPresent
+        name: grafana
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /etc/grafana/provisioning/datasources
+          name: grafana-datasources
+        - mountPath: /etc/grafana/provisioning/dashboards
+          name: grafana-dashboard-providers
+        - mountPath: /var/lib/grafana/dashboards
+          name: grafana-dashboards
+        - mountPath: /etc/ssl/certs/grafana
+          name: grafana-tls
+        - mountPath: /var/lib/grafana
+          name: grafana-storage
+        - mountPath: /etc/ssl/certs
+          name: grafana-certs
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: grafana-datasources
+        name: grafana-datasources
+      - configMap:
+          defaultMode: 420
+          name: grafana-dashboard-providers
+        name: grafana-dashboard-providers
+      - configMap:
+          defaultMode: 420
+          name: grafana-dashboards
+        name: grafana-dashboards
+      - name: grafana-tls
+        secret:
+          defaultMode: 420
+          secretName: grafana-tls
+      - emptyDir: {}
+        name: grafana-storage
+      - name: grafana-certs
+        secret:
+          defaultMode: 420
+          items:
+          - key: tls.crt
+            path: grafana.crt
+          - key: tls.key
+            path: grafana.key
+          secretName: grafana-tls
+status:
+  availableReplicas: 1
+  conditions:
+  - lastTransitionTime: "2025-12-01T19:58:32Z"
+    lastUpdateTime: "2025-12-04T23:08:11Z"
+    message: ReplicaSet "grafana-86999fc58b" has successfully progressed.
+    reason: NewReplicaSetAvailable
+    status: "True"
+    type: Progressing
+  - lastTransitionTime: "2025-12-04T23:10:49Z"
+    lastUpdateTime: "2025-12-04T23:10:49Z"
+    message: Deployment has minimum availability.
+    reason: MinimumReplicasAvailable
+    status: "True"
+    type: Available
+  observedGeneration: 10
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1

@@ -1,0 +1,24 @@
+apiVersion: v1
+data:
+  dashboardproviders.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      updateIntervalSeconds: 10
+      options:
+        path: /var/lib/grafana/dashboards
+kind: ConfigMap
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"dashboardproviders.yaml":"apiVersion: 1\nproviders:\n- name: 'default'\n  orgId: 1\n  folder: ''\n  type: file\n  disableDeletion: false\n  editable: true\n  updateIntervalSeconds: 10\n  options:\n    path: /var/lib/grafana/dashboards\n"},"kind":"ConfigMap","metadata":{"annotations":{},"name":"grafana-dashboard-providers","namespace":"kube-system"}}
+  creationTimestamp: "2025-12-01T20:08:18Z"
+  name: grafana-dashboard-providers
+  namespace: kube-system
+  resourceVersion: "76104"
+  uid: 83011bc5-a615-4873-b66f-526493c9a88c
