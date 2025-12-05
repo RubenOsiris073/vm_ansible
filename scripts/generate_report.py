@@ -5,11 +5,16 @@ Script para generar reporte en formato DOCX basado en el repositorio vm_ansible
 
 import os
 import re
+import json
+import subprocess
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from datetime import datetime
-import subprocess
+
+# Configuración
+EXCLUDED_DIRS = ['node_modules', '__pycache__', 'venv']
+DEFAULT_MAX_DEPTH = 3
 
 def add_heading(doc, text, level=1):
     """Agregar encabezado con formato personalizado"""
@@ -110,7 +115,7 @@ def get_git_info():
     except:
         return "Información de git no disponible"
 
-def get_directory_structure(path, prefix='', max_depth=3, current_depth=0):
+def get_directory_structure(path, prefix='', max_depth=DEFAULT_MAX_DEPTH, current_depth=0):
     """Obtener estructura de directorios recursivamente"""
     if current_depth >= max_depth:
         return []
@@ -120,7 +125,7 @@ def get_directory_structure(path, prefix='', max_depth=3, current_depth=0):
         items = sorted(os.listdir(path))
         # Filtrar archivos ocultos y directorios no deseados
         items = [item for item in items if not item.startswith('.') 
-                 and item not in ['node_modules', '__pycache__', 'venv']]
+                 and item not in EXCLUDED_DIRS]
         
         for i, item in enumerate(items):
             item_path = os.path.join(path, item)
@@ -266,8 +271,7 @@ def generate_report(repo_path, output_file):
                 # Leer package.json si existe
                 package_json = os.path.join(app_path, 'package.json')
                 if os.path.exists(package_json):
-                    with open(package_json, 'r') as f:
-                        import json
+                    with open(package_json, 'r', encoding='utf-8') as f:
                         try:
                             pkg = json.load(f)
                             if 'description' in pkg:
